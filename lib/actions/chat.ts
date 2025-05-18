@@ -72,10 +72,12 @@ export async function getChatsPage(
   limit = 20,
   offset = 0
 ): Promise<{ chats: Chat[]; nextOffset: number | null }> {
+  console.log('[getChatsPage] Called with userId:', userId, 'limit:', limit, 'offset:', offset);
   try {
     const supabase = await createSupabaseClient() // Instantiate Supabase client
 
     // 1. Fetch paginated conversation metadata from Supabase
+    console.log('[getChatsPage] Fetching conversations from Supabase for userId:', userId);
     const { data: conversationsMeta, error: convListError } = await supabase
       .from('conversations')
       .select('id, title, created_at, user_id, path, share_path') // Select necessary fields
@@ -84,36 +86,58 @@ export async function getChatsPage(
       .range(offset, offset + limit - 1)
 
     if (convListError) {
-      console.error('Error fetching conversations from Supabase:', convListError)
+      console.error('[getChatsPage] Error fetching conversations from Supabase:', convListError);
       return { chats: [], nextOffset: null }
     }
+    console.log('[getChatsPage] Fetched conversationsMeta:', conversationsMeta);
 
     if (!conversationsMeta || conversationsMeta.length === 0) {
+      console.log('[getChatsPage] No conversations found for userId:', userId);
       return { chats: [], nextOffset: null }
     }
 
     // 2. Fetch full chat details for each conversation ID
     // This will utilize the getChat function which has cache-aside logic
-    const chatPromises = conversationsMeta.map(conv => getChat(conv.id, userId))
+    const chatPromises = conversationsMeta.map(conv => {
+      console.log('[getChatsPage] Preparing to call getChat for conv.id:', conv.id, 'and userId:', userId);
+      if (conv.id === null || typeof conv.id === 'undefined') {
+        console.warn('[getChatsPage] conv.id is null or undefined before calling getChat. Skipping this conversation. Conversation object:', conv);
+        return Promise.resolve(null); // Avoid calling getChat with null ID
+      }
+      return getChat(conv.id, userId);
+    });
     const resolvedChats = (await Promise.all(chatPromises)).filter(
       (chat): chat is Chat => chat !== null
     )
+    console.log('[getChatsPage] Resolved chats count:', resolvedChats.length);
 
     // 3. Determine nextOffset
     const nextOffset = conversationsMeta.length === limit ? offset + limit : null
+    console.log('[getChatsPage] nextOffset:', nextOffset);
 
     return { chats: resolvedChats, nextOffset }
   } catch (error) {
-    console.error('Error fetching chat page:', error)
+    console.error('[getChatsPage] Error fetching chat page:', error); // This is the error you were seeing
     return { chats: [], nextOffset: null }
   }
 }
 
 export async function getChat(id: string, userId: string) {
+  console.log('[getChat] Called with id:', id, 'userId:', userId);
+  if (id === null || typeof id === 'undefined') {
+    console.error('[getChat] CRITICAL: getChat called with null or undefined id. Returning null. UserId:', userId);
+    return null;
+  }
+
   const redis = await getRedis() // Keep Redis for cache access
-  let chatFromCache = await redis.hgetall<Chat>(`chat:${id}`)
+  const cacheKey = `chat:${id}`;
+  console.log('[getChat] Attempting to fetch from cache with key:', cacheKey);
+  let chatFromCache = await redis.hgetall<Chat>(cacheKey)
+  console.log('[getChat] Result from cache for key', cacheKey, ':', chatFromCache ? 'Found' : 'Not Found', chatFromCache ? Object.keys(chatFromCache).length : '');
+
 
   if (chatFromCache && Object.keys(chatFromCache).length > 0) {
+    console.log('[getChat] Cache hit for id:', id);
     // Cache hit
     if (typeof chatFromCache.messages === 'string') {
       try {
@@ -133,24 +157,29 @@ export async function getChat(id: string, userId: string) {
     return chatFromCache
   }
 
+  console.log('[getChat] Cache miss for id:', id, '. Fetching from Supabase.');
   // Cache miss, fetch from Supabase
   const supabase = await createSupabaseClient()
 
+  console.log('[getChat] Supabase: Fetching conversation with id:', id);
   const { data: conversation, error: convError } = await supabase
     .from('conversations')
     .select('*')
     .eq('id', id)
-    // .eq('user_id', userId) // Apply RLS in Supabase, or uncomment if specific user check needed here
+    .eq('user_id', userId)
     .single()
 
   if (convError) {
-    console.error(`Error fetching conversation ${id} from Supabase:`, convError)
+    console.error(`[getChat] Supabase: Error fetching conversation ${id} from Supabase:`, convError);
     return null
   }
   if (!conversation) {
+    console.log('[getChat] Supabase: Conversation not found for id:', id);
     return null // Not found in Supabase
   }
+  console.log('[getChat] Supabase: Fetched conversation for id:', id, conversation);
 
+  console.log('[getChat] Supabase: Fetching messages for conversation_id:', id);
   const { data: messagesData, error: msgError } = await supabase
     .from('messages')
     .select('*') // Select all fields to reconstruct ExtendedCoreMessage
@@ -158,10 +187,11 @@ export async function getChat(id: string, userId: string) {
     .order('created_at', { ascending: true })
 
   if (msgError) {
-    console.error(`Error fetching messages for chat ${id} from Supabase:`, msgError)
+    console.error(`[getChat] Supabase: Error fetching messages for chat ${id} from Supabase:`, msgError);
     // Decide if partial chat (conversation only) should be returned or null
     return null
   }
+  console.log('[getChat] Supabase: Fetched messagesData for id:', id, messagesData ? messagesData.length : 0, 'messages');
 
   // Reconstruct the Chat object from Supabase data
   const messages: ExtendedCoreMessage[] = messagesData
@@ -193,13 +223,22 @@ export async function getChat(id: string, userId: string) {
     messages: messages,
     sharePath: conversation.share_path || undefined
   }
+  console.log('[getChat] Constructed chatFromDb for id:', id, chatFromDb);
 
   // Populate Upstash cache
   const chatToCache = {
     ...chatFromDb,
     messages: JSON.stringify(chatFromDb.messages) // Stringify messages for Redis
   }
-  await redis.hmset(`chat:${chatFromDb.id}`, chatToCache)
+  const cacheStoreKey = `chat:${chatFromDb.id}`;
+  console.log('[getChat] Attempting to populate cache for key:', cacheStoreKey, 'with data:', chatToCache);
+  try {
+    await redis.hmset(cacheStoreKey, chatToCache);
+    console.log('[getChat] Successfully populated cache for key:', cacheStoreKey);
+  } catch (cacheError) {
+    console.error('[getChat] Error populating cache for key:', cacheStoreKey, 'Error:', cacheError);
+    // Decide if we should still return chatFromDb or throw/return null
+  }
   // Also consider adding to the user's sorted set in Redis if getChat is authoritative for new chats
   // However, saveChat is primarily responsible for the sorted set.
 
@@ -579,7 +618,7 @@ export async function shareChat(id: string, userId: string): Promise<Chat | null
         cachedMessages = rawChatFromCache.messages; // Assume it's already ExtendedCoreMessage[]
       }
       
-      const chatFromCache: Chat = {
+      const chatFromCacheData: Chat = {
         id: rawChatFromCache.id as string,
         title: rawChatFromCache.title as string,
         createdAt: new Date(rawChatFromCache.createdAt as string | Date),
@@ -594,11 +633,11 @@ export async function shareChat(id: string, userId: string): Promise<Chat | null
       const { data: newConversation, error: convInsertError } = await supabase
         .from('conversations')
         .insert({
-          id: chatFromCache.id,
+          id: chatFromCacheData.id,
           user_id: userId,
-          title: chatFromCache.title,
-          path: chatFromCache.path,
-          created_at: new Date(chatFromCache.createdAt).toISOString(),
+          title: chatFromCacheData.title,
+          path: chatFromCacheData.path,
+          created_at: new Date(chatFromCacheData.createdAt).toISOString(),
           updated_at: new Date().toISOString(),
           share_path: sharePathValue // Set the share_path now
         })
@@ -606,18 +645,18 @@ export async function shareChat(id: string, userId: string): Promise<Chat | null
         .single();
 
       if (convInsertError || !newConversation) {
-        console.error(`Supabase error inserting guest conversation ${chatFromCache.id}:`, convInsertError);
+        console.error(`Supabase error inserting guest conversation ${chatFromCacheData.id}:`, convInsertError);
         return null;
       }
 
       // 2. Persist messages to Supabase
-      if (chatFromCache.messages && chatFromCache.messages.length > 0) {
-        const messagesToInsert = chatFromCache.messages.map(message => ({
-          conversation_id: chatFromCache.id,
+      if (chatFromCacheData.messages && chatFromCacheData.messages.length > 0) {
+        const messagesToInsert = chatFromCacheData.messages.map(message => ({
+          conversation_id: chatFromCacheData.id,
           user_id: userId,
           role: message.role,
           content: typeof message.content === 'string' ? message.content : JSON.stringify(message.content),
-          tokens: ('tokens' in message && typeof message.tokens === 'number') ? message.tokens : null,
+          tokens: ('tokens' in message && typeof message.tokens === 'number') ? message.tokens : 0, // Defaulted tokens to 0
           created_at: new Date().toISOString() // Messages get current timestamp on first persistence
         }));
 
@@ -626,13 +665,13 @@ export async function shareChat(id: string, userId: string): Promise<Chat | null
           .insert(messagesToInsert);
 
         if (msgInsertError) {
-          console.error(`Supabase error inserting messages for guest chat ${chatFromCache.id}:`, msgInsertError);
+          console.error(`Supabase error inserting messages for guest chat ${chatFromCacheData.id}:`, msgInsertError);
           // Potentially rollback conversation insert or mark as incomplete
           return null;
         }
       }
       
-      const chatToReturn = constructChatObject(newConversation, chatFromCache.messages);
+      const chatToReturn = constructChatObject(newConversation, chatFromCacheData.messages);
       await updateCacheWithSharePath(id, chatToReturn); // Update cache with sharePath
       return chatToReturn;
     }
