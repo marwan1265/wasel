@@ -5,8 +5,8 @@ import { createClient as createSupabaseClient } from '@/lib/supabase/server';
 export type UserTier = 'guest' | 'free' | 'pro' | 'unknown';
 
 export async function getUserTier(userId: string): Promise<UserTier> {
-  if (!userId) {
-    return 'guest'; // Or 'unknown', but guest seems appropriate if no userId is provided
+  if (!userId || userId === 'anonymous') {
+    return 'guest'; // Or 'unknown', but guest seems appropriate if no userId is provided or user is anonymous
   }
 
   const supabase = await createSupabaseClient();

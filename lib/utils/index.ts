@@ -1,12 +1,12 @@
 import { type Model } from '@/lib/types/models'
 import {
-  convertToCoreMessages,
-  CoreMessage,
-  CoreToolMessage,
-  generateId,
-  JSONValue,
-  Message,
-  ToolInvocation
+    convertToCoreMessages,
+    CoreMessage,
+    CoreToolMessage,
+    generateId,
+    JSONValue,
+    Message,
+    ToolInvocation
 } from 'ai'
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
@@ -37,12 +37,16 @@ export function transformToolMessages(messages: CoreMessage[]): CoreMessage[] {
 }
 
 /**
- * Sanitizes a URL by replacing spaces with '%20'
+ * Sanitizes a URL by replacing spaces with '%20' and converting HTTP URLs to HTTPS.
  * @param url - The URL to sanitize
  * @returns The sanitized URL
  */
 export function sanitizeUrl(url: string): string {
-  return url.replace(/\s+/g, '%20')
+  let sanitizedUrl = url.replace(/\s+/g, '%20');
+  if (sanitizedUrl.startsWith('http://')) {
+    sanitizedUrl = sanitizedUrl.replace('http://', 'https://');
+  }
+  return sanitizedUrl;
 }
 
 export function createModelId(model: Model): string {

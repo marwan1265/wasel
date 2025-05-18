@@ -1,16 +1,17 @@
-import AppSidebar from '@/components/app-sidebar'
-import ArtifactRoot from '@/components/artifact/artifact-root'
-import Header from '@/components/header'
-import { ThemeProvider } from '@/components/theme-provider'
-import { SidebarProvider } from '@/components/ui/sidebar'
-import { Toaster } from '@/components/ui/sonner'
-import { TooltipProvider } from '@/components/ui/tooltip'
-import { createClient } from '@/lib/supabase/server'
-import { cn } from '@/lib/utils'
-import { Analytics } from '@vercel/analytics/next'
-import type { Metadata, Viewport } from 'next'
-import { Cairo as FontArabic } from 'next/font/google'
-import './globals.css'
+export const dynamic = 'force-dynamic';
+import AppSidebar from '@/components/app-sidebar';
+import ArtifactRoot from '@/components/artifact/artifact-root';
+import Header from '@/components/header';
+import { ThemeProvider } from '@/components/theme-provider';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import { Toaster } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { createClient } from '@/lib/supabase/server';
+import { cn } from '@/lib/utils';
+import { Analytics } from '@vercel/analytics/next';
+import type { Metadata, Viewport } from 'next';
+import { Cairo as FontArabic } from 'next/font/google';
+import './globals.css';
 
 const fontArabic = FontArabic({
   subsets: ['arabic'],
