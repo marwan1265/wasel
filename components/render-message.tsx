@@ -110,21 +110,25 @@ export function RenderMessage({
   // New way: Use parts instead of toolInvocations
   return (
     <>
-      {toolData.map(tool => (
-        <ToolSection
-          key={tool.toolCallId}
-          tool={tool}
-          isOpen={getIsOpen(tool.toolCallId)}
-          onOpenChange={open => onOpenChange(tool.toolCallId, open)}
-          addToolResult={addToolResult}
-        />
-      ))}
+      {toolData.map(tool => {
+        console.log('[RenderMessage] Rendering ToolSection from toolData (annotations):', tool);
+        return (
+          <ToolSection
+            key={tool.toolCallId}
+            tool={tool}
+            isOpen={getIsOpen(tool.toolCallId)}
+            onOpenChange={open => onOpenChange(tool.toolCallId, open)}
+            addToolResult={addToolResult}
+          />
+        )
+      })}
       {message.parts?.map((part, index) => {
         // Check if this is the last part in the array
         const isLastPart = index === (message.parts?.length ?? 0) - 1
 
         switch (part.type) {
           case 'tool-invocation':
+            console.log('[RenderMessage] Rendering ToolSection from message.parts:', part.toolInvocation);
             return (
               <ToolSection
                 key={part.toolInvocation.toolCallId || `${messageId}-tool-${index}`}

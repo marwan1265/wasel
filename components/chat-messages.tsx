@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils'
 import { ChatRequestOptions, JSONValue, Message } from 'ai'
 import { useEffect, useMemo, useState } from 'react'
 import { RenderMessage } from './render-message'
-import { ToolSection } from './tool-section'
 import { Spinner } from './ui/spinner'
 
 interface ChatMessagesProps {
@@ -102,6 +101,10 @@ ChatMessagesProps) {
 
   if (!messages.length) return null
 
+  // Temporarily disable the lastToolData rendering path for diagnosis
+  const shouldShowToolSection = false; // isLoading && lastToolData;
+  // const lastToolData = null; // also an option to fully disable
+
   // Determine if the generic spinner should be shown
   let shouldShowGenericSpinner = false;
   if (!lastToolData) {
@@ -116,9 +119,6 @@ ChatMessagesProps) {
       }
     }
   }
-
-  // Determine if ToolSection should be shown (this is for active tool calls)
-  const shouldShowToolSection = isLoading && lastToolData;
 
   const lastUserIndex =
     messages.length -
@@ -169,7 +169,7 @@ ChatMessagesProps) {
             />
           </div>
         ))}
-        {shouldShowToolSection && lastToolData && (
+        {/* {shouldShowToolSection && lastToolData && (
           <ToolSection
             key={manualToolCallId}
             tool={lastToolData}
@@ -177,7 +177,7 @@ ChatMessagesProps) {
             onOpenChange={open => handleOpenChange(manualToolCallId, open)}
             addToolResult={addToolResult}
           />
-        )}
+        )} */}
         {shouldShowGenericSpinner && (
           <Spinner />
         )}
