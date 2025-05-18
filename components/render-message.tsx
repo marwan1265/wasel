@@ -127,7 +127,7 @@ export function RenderMessage({
           case 'tool-invocation':
             return (
               <ToolSection
-                key={`${messageId}-tool-${index}`}
+                key={part.toolInvocation.toolCallId || `${messageId}-tool-${index}`}
                 tool={part.toolInvocation}
                 isOpen={getIsOpen(part.toolInvocation.toolCallId)}
                 onOpenChange={open =>

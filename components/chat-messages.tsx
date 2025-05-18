@@ -46,6 +46,8 @@ ChatMessagesProps) {
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({})
   const manualToolCallId = 'manual-tool-call'
 
+  console.log('[ChatMessages] messages:', messages);
+
   // State for managing the 1-second delay visibility after primary loading stops
   const [delayedSpinnerActive, setDelayedSpinnerActive] = useState(false);
 
