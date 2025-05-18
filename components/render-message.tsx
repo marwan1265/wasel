@@ -111,7 +111,6 @@ export function RenderMessage({
   return (
     <>
       {toolData.map(tool => {
-        console.log('[RenderMessage] Rendering ToolSection from toolData (annotations):', tool);
         return (
           <ToolSection
             key={tool.toolCallId}
@@ -128,7 +127,6 @@ export function RenderMessage({
 
         switch (part.type) {
           case 'tool-invocation':
-            console.log('[RenderMessage] Rendering ToolSection from message.parts:', part.toolInvocation);
             return (
               <ToolSection
                 key={part.toolInvocation.toolCallId || `${messageId}-tool-${index}`}

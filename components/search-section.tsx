@@ -27,7 +27,6 @@ export function SearchSection({
   })
   const isLoading = status === 'submitted' || status === 'streaming'
 
-  console.log('[SearchSection] tool:', tool);
   const isToolLoading = tool.state === 'call'
   const searchResults: TypeSearchResults =
     tool.state === 'result' ? tool.result : undefined

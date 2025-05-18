@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils'
 import { ChatRequestOptions, JSONValue, Message } from 'ai'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { RenderMessage } from './render-message'
 import { Spinner } from './ui/spinner'
 
@@ -45,8 +45,6 @@ ChatMessagesProps) {
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({})
   const manualToolCallId = 'manual-tool-call'
 
-  console.log('[ChatMessages] messages:', messages);
-
   // State for managing the 1-second delay visibility after primary loading stops
   const [delayedSpinnerActive, setDelayedSpinnerActive] = useState(false);
 
@@ -75,39 +73,14 @@ ChatMessagesProps) {
   }, [isLoading]);
 
   // get last tool data for manual tool call
-  const lastToolData = useMemo(() => {
-    if (!data || !Array.isArray(data) || data.length === 0) return null
-
-    const lastItem = data[data.length - 1] as {
-      type: 'tool_call'
-      data: {
-        toolCallId: string
-        state: 'call' | 'result'
-        toolName: string
-        args: string
-      }
-    }
-
-    if (lastItem.type !== 'tool_call') return null
-
-    const toolData = lastItem.data
-    return {
-      state: 'call' as const,
-      toolCallId: toolData.toolCallId,
-      toolName: toolData.toolName,
-      args: toolData.args ? JSON.parse(toolData.args) : undefined
-    }
-  }, [data])
+  // const lastToolData = useMemo(() => { ... }); // This logic is being removed/disabled
+  const lastToolData = null; // Ensure it's always null if not used elsewhere
 
   if (!messages.length) return null
 
-  // Temporarily disable the lastToolData rendering path for diagnosis
-  const shouldShowToolSection = false; // isLoading && lastToolData;
-  // const lastToolData = null; // also an option to fully disable
-
   // Determine if the generic spinner should be shown
   let shouldShowGenericSpinner = false;
-  if (!lastToolData) {
+  if (!lastToolData) { // This condition will now always be true
     const lastMessage = messages[messages.length - 1];
     if (isLoading) {
       if (lastMessage.role === 'user' || (lastMessage.role === 'assistant' && lastMessage.content === '')) {
@@ -141,6 +114,10 @@ ChatMessagesProps) {
     }))
   }
 
+  // Determine if ToolSection should be shown (this is for active tool calls)
+  // const shouldShowToolSection = isLoading && lastToolData; // This logic is being removed/disabled
+  const shouldShowToolSection = false; // Ensure this section is not shown
+
   return (
     <div
       id="scroll-container"
@@ -169,15 +146,17 @@ ChatMessagesProps) {
             />
           </div>
         ))}
-        {/* {shouldShowToolSection && lastToolData && (
-          <ToolSection
-            key={manualToolCallId}
-            tool={lastToolData}
-            isOpen={getIsOpen(manualToolCallId)}
-            onOpenChange={open => handleOpenChange(manualToolCallId, open)}
-            addToolResult={addToolResult}
-          />
-        )} */}
+        {/* {
+          shouldShowToolSection && lastToolData && (
+            <ToolSection
+              key={manualToolCallId}
+              tool={lastToolData}
+              isOpen={getIsOpen(manualToolCallId)}
+              onOpenChange={open => handleOpenChange(manualToolCallId, open)}
+              addToolResult={addToolResult}
+            />
+          )
+        } */}
         {shouldShowGenericSpinner && (
           <Spinner />
         )}
