@@ -369,11 +369,9 @@ export async function saveChat(chat: Chat, userId: string) {
         const messagesToInsert = chat.messages.map(message => {
           const messageContent = typeof message.content === 'string' ? message.content : JSON.stringify(message.content)
           
-          let tokens = null;
+          let tokens = 0; // Default to 0
           if ('tokens' in message && typeof message.tokens === 'number') {
               tokens = message.tokens;
-          } else if (typeof message.content === 'string') {
-              // Fallback for tokens (currently placeholder)
           }
 
           return {
