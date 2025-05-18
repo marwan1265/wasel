@@ -3,16 +3,17 @@
 import { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
 import { Message } from 'ai'
-import { ArrowUp, ChevronDown, MessageCirclePlus, Square } from 'lucide-react'
+import { ArrowUp, ChevronDown, Square } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import Textarea from 'react-textarea-autosize'
 import { useArtifact } from './artifact/artifact-context'
+import { DeepthinkToggle } from './deepthink-toggle'
 import { EmptyScreen } from './empty-screen'
-import { ModelSelector } from './model-selector'
 import { SearchModeToggle } from './search-mode-toggle'
 import { Button } from './ui/button'
 import { IconLogo } from './ui/icons'
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
 interface ChatPanelProps {
   input: string
@@ -113,9 +114,9 @@ export function ChatPanel({
     >
       {messages.length === 0 && (
         <div className="mb-10 flex flex-col items-center gap-4">
-          <IconLogo className="size-12 text-muted-foreground" />
+          <IconLogo className="size-24 text-muted-foreground" key="main-logo" />
           <p className="text-center text-3xl font-semibold">
-            How can I help you today?
+            كيف يمكنني مساعدتك اليوم؟
           </p>
         </div>
       )}
@@ -125,16 +126,22 @@ export function ChatPanel({
       >
         {/* Add scroll-down button to ChatPanel right top - show when not auto scrolling */}
         {!isAutoScroll && messages.length > 0 && (
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="absolute -top-10 right-4 z-20 size-8 rounded-full shadow-md"
-            onClick={handleScrollToBottom}
-            title="Scroll to bottom"
-          >
-            <ChevronDown size={16} />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="absolute -top-10 right-4 z-20 size-8 rounded-full shadow-md"
+                onClick={handleScrollToBottom}
+              >
+                <ChevronDown size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>الأسفل</p>
+            </TooltipContent>
+          </Tooltip>
         )}
 
         <div className="relative flex flex-col w-full gap-2 bg-muted rounded-3xl border border-input">
@@ -146,7 +153,7 @@ export function ChatPanel({
             tabIndex={0}
             onCompositionStart={handleCompositionStart}
             onCompositionEnd={handleCompositionEnd}
-            placeholder="Ask a question..."
+            placeholder="اسأل سؤالاً..."
             spellCheck={false}
             value={input}
             disabled={isLoading || isToolInvocationInProgress()}
@@ -178,35 +185,30 @@ export function ChatPanel({
           {/* Bottom menu area */}
           <div className="flex items-center justify-between p-3">
             <div className="flex items-center gap-2">
-              <ModelSelector models={models || []} />
+              <DeepthinkToggle />
               <SearchModeToggle />
             </div>
             <div className="flex items-center gap-2">
-              {messages.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleNewChat}
-                  className="shrink-0 rounded-full group"
-                  type="button"
-                  disabled={isLoading || isToolInvocationInProgress()}
-                >
-                  <MessageCirclePlus className="size-4 group-hover:rotate-12 transition-all" />
-                </Button>
-              )}
-              <Button
-                type={isLoading ? 'button' : 'submit'}
-                size={'icon'}
-                variant={'outline'}
-                className={cn(isLoading && 'animate-pulse', 'rounded-full')}
-                disabled={
-                  (input.length === 0 && !isLoading) ||
-                  isToolInvocationInProgress()
-                }
-                onClick={isLoading ? stop : undefined}
-              >
-                {isLoading ? <Square size={20} /> : <ArrowUp size={20} />}
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type={isLoading ? 'button' : 'submit'}
+                    size={'icon'}
+                    variant={'outline'}
+                    className={cn(isLoading && 'animate-pulse', 'rounded-full hover:border-foreground')}
+                    disabled={
+                      (input.length === 0 && !isLoading) ||
+                      isToolInvocationInProgress()
+                    }
+                    onClick={isLoading ? stop : undefined}
+                  >
+                    {isLoading ? <Square size={20} /> : <ArrowUp size={20} />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isLoading ? 'إيقاف' : 'إرسال'}</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </div>

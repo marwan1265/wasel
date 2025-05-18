@@ -10,16 +10,16 @@ export function ThemeMenuItems() {
   return (
     <>
       <DropdownMenuItem onClick={() => setTheme('light')}>
-        <Sun className="mr-2 h-4 w-4" />
-        <span>Light</span>
+        <Sun className="ml-3 mr-4 h-4 w-4" />
+        <span>فاتح</span>
       </DropdownMenuItem>
       <DropdownMenuItem onClick={() => setTheme('dark')}>
-        <Moon className="mr-2 h-4 w-4" />
-        <span>Dark</span>
+        <Moon className="ml-3 mr-4 h-4 w-4" />
+        <span>داكن</span>
       </DropdownMenuItem>
       <DropdownMenuItem onClick={() => setTheme('system')}>
-        <Laptop className="mr-2 h-4 w-4" />
-        <span>System</span>
+        <Laptop className="ml-3 mr-4 h-4 w-4" />
+        <span>النظام</span>
       </DropdownMenuItem>
     </>
   )

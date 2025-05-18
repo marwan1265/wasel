@@ -2,17 +2,18 @@
 
 import { Button } from '@/components/ui/button'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle
 } from '@/components/ui/card'
 import { IconLogo } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/index'
+import { Turnstile } from '@marsidev/react-turnstile'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -26,7 +27,10 @@ export function SignUpForm({
   const [repeatPassword, setRepeatPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const router = useRouter()
+
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,12 +44,19 @@ export function SignUpForm({
       return
     }
 
+    if (!turnstileToken) {
+      setError('Please complete the CAPTCHA challenge.')
+      setIsLoading(false)
+      return
+    }
+
     try {
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`
+          emailRedirectTo: `${window.location.origin}/`,
+          captchaToken: turnstileToken
         }
       })
       if (error) throw error
@@ -55,6 +66,15 @@ export function SignUpForm({
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (!turnstileSiteKey) {
+    console.error('Turnstile site key is not configured.')
+    return (
+      <div className="text-red-500 text-center p-4">
+        CAPTCHA configuration is missing. Please contact support.
+      </div>
+    )
   }
 
   return (
@@ -84,6 +104,7 @@ export function SignUpForm({
                   required
                   value={email}
                   onChange={e => setEmail(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
               <div className="grid gap-2">
@@ -97,6 +118,7 @@ export function SignUpForm({
                   required
                   value={password}
                   onChange={e => setPassword(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
               <div className="grid gap-2">
@@ -110,10 +132,21 @@ export function SignUpForm({
                   required
                   value={repeatPassword}
                   onChange={e => setRepeatPassword(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="my-4 flex justify-center">
+                <Turnstile
+                  siteKey={turnstileSiteKey}
+                  onSuccess={setTurnstileToken}
+                  options={{
+                    theme: 'light',
+                    appearance: 'execute'
+                  }}
                 />
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken}>
                 {isLoading ? 'Creating account...' : 'Sign Up'}
               </Button>
             </div>

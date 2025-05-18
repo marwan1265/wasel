@@ -20,6 +20,7 @@ import {
 import { SidebarGroupAction } from '@/components/ui/sidebar'
 import { Spinner } from '@/components/ui/spinner'
 import { clearChats } from '@/lib/actions/chat'
+import { getCurrentUserId } from '@/lib/auth/get-current-user'
 import { MoreHorizontal, Trash2 } from 'lucide-react'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
@@ -34,8 +35,9 @@ export function ClearHistoryAction({ empty }: ClearHistoryActionProps) {
 
   const onClear = () =>
     start(async () => {
-      const res = await clearChats()
-      res?.error ? toast.error(res.error) : toast.success('History cleared')
+      const userId = await getCurrentUserId()
+      const res = await clearChats(userId)
+      res?.error ? toast.error(res.error) : toast.success('تم مسح السجل')
       setOpen(false)
       window.dispatchEvent(new CustomEvent('chat-history-updated'))
     })
@@ -45,7 +47,7 @@ export function ClearHistoryAction({ empty }: ClearHistoryActionProps) {
       <DropdownMenuTrigger asChild>
         <SidebarGroupAction disabled={empty} className="static size-7 p-1">
           <MoreHorizontal size={16} />
-          <span className="sr-only">History Actions</span>
+          <span className="sr-only">إجراءات السجل</span>
         </SidebarGroupAction>
       </DropdownMenuTrigger>
 
@@ -57,22 +59,21 @@ export function ClearHistoryAction({ empty }: ClearHistoryActionProps) {
               className="gap-2 text-destructive focus:text-destructive"
               onSelect={event => event.preventDefault()} // Prevent closing dropdown
             >
-              <Trash2 size={14} /> Clear History
+              <Trash2 size={14} /> مسح السجل
             </DropdownMenuItem>
           </AlertDialogTrigger>
 
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogTitle>هل أنت متأكد تماماً؟</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. It will permanently delete your
-                history.
+                لا يمكن التراجع عن هذا الإجراء. سيؤدي هذا إلى حذف سجل المحادثات بشكل دائم.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+              <AlertDialogCancel disabled={isPending}>إلغاء</AlertDialogCancel>
               <AlertDialogAction disabled={isPending} onClick={onClear}>
-                {isPending ? <Spinner /> : 'Clear'}
+                {isPending ? <Spinner /> : 'مسح'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

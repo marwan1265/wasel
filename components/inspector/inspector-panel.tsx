@@ -2,16 +2,13 @@
 
 import { ArtifactContent } from '@/components/artifact/artifact-content'
 import { useArtifact } from '@/components/artifact/artifact-context'
-import { Button } from '@/components/ui/button'
+import { DeepResearchIcon } from '@/components/ui/icons'
 import { Separator } from '@/components/ui/separator'
-import { TooltipButton } from '@/components/ui/tooltip-button'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
+    TooltipProvider
 } from '@/components/ui/tooltip'
-import { LightbulbIcon, MessageSquare, Minimize2, Wrench } from 'lucide-react'
+import { TooltipButton } from '@/components/ui/tooltip-button'
+import { MessageSquare, Minimize2, Wrench } from 'lucide-react'
 
 export function InspectorPanel() {
   const { state, close } = useArtifact()
@@ -28,7 +25,7 @@ export function InspectorPanel() {
         }
       case 'reasoning':
         return {
-          icon: <LightbulbIcon size={18} />,
+          icon: <DeepResearchIcon className="size-[18px]" />,
           title: 'Reasoning'
         }
       case 'text':

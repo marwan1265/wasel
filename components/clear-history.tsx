@@ -1,15 +1,15 @@
 'use client'
 
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { clearChats } from '@/lib/actions/chat'
@@ -28,19 +28,18 @@ export function ClearHistory({ empty }: ClearHistoryProps) {
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
         <Button variant="outline" className="w-full" disabled={empty}>
-          Clear History
+          مسح السجل
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogTitle>هل أنت متأكد تماماً؟</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete your
-            history and remove your data from our servers.
+            لا يمكن التراجع عن هذا الإجراء. سيؤدي هذا إلى حذف سجل المحادثات بشكل دائم وإزالة البيانات من خوادمنا.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isPending}>إلغاء</AlertDialogCancel>
           <AlertDialogAction
             disabled={isPending}
             onClick={event => {
@@ -50,13 +49,13 @@ export function ClearHistory({ empty }: ClearHistoryProps) {
                 if (result?.error) {
                   toast.error(result.error)
                 } else {
-                  toast.success('History cleared')
+                  toast.success('تم مسح السجل')
                 }
                 setOpen(false)
               })
             }}
           >
-            {isPending ? <Spinner /> : 'Clear'}
+            {isPending ? <Spinner /> : 'مسح'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -11,7 +11,7 @@ interface ChatMessagesProps {
   messages: Message[]
   data: JSONValue[] | undefined
   onQuerySelect: (query: string) => void
-  isLoading: boolean
+  isLoading: boolean // True if status is 'submitted' or 'streaming'
   chatId?: string
   addToolResult?: (params: { toolCallId: string; result: any }) => void
   /** Ref for anchoring auto-scroll position */
@@ -46,12 +46,32 @@ ChatMessagesProps) {
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({})
   const manualToolCallId = 'manual-tool-call'
 
+  // State for managing the 1-second delay visibility after primary loading stops
+  const [delayedSpinnerActive, setDelayedSpinnerActive] = useState(false);
+
   useEffect(() => {
     const lastMessage = messages[messages.length - 1]
     if (lastMessage?.role === 'user') {
       setOpenStates({ [manualToolCallId]: true })
     }
   }, [messages])
+
+  useEffect(() => {
+    let timerId: NodeJS.Timeout | undefined;
+    if (!isLoading) {
+      setDelayedSpinnerActive(true);
+      timerId = setTimeout(() => {
+        setDelayedSpinnerActive(false);
+      }, 1000);
+    } else {
+      setDelayedSpinnerActive(false);
+    }
+    return () => {
+      if (timerId) {
+        clearTimeout(timerId);
+      }
+    };
+  }, [isLoading]);
 
   // get last tool data for manual tool call
   const lastToolData = useMemo(() => {
@@ -80,12 +100,28 @@ ChatMessagesProps) {
 
   if (!messages.length) return null
 
+  // Determine if the generic spinner should be shown
+  let shouldShowGenericSpinner = false;
+  if (!lastToolData) {
+    const lastMessage = messages[messages.length - 1];
+    if (isLoading) {
+      if (lastMessage.role === 'user' || (lastMessage.role === 'assistant' && lastMessage.content === '')) {
+        shouldShowGenericSpinner = true;
+      }
+    } else if (delayedSpinnerActive) {
+      if (lastMessage.role === 'user' || (lastMessage.role === 'assistant' && lastMessage.content === '')) {
+         shouldShowGenericSpinner = true;
+      }
+    }
+  }
+
+  // Determine if ToolSection should be shown (this is for active tool calls)
+  const shouldShowToolSection = isLoading && lastToolData;
+
   const lastUserIndex =
     messages.length -
     1 -
     [...messages].reverse().findIndex(msg => msg.role === 'user')
-
-  const showLoading = isLoading && messages[messages.length - 1].role === 'user'
 
   const getIsOpen = (id: string) => {
     if (id.includes('call')) {
@@ -131,18 +167,18 @@ ChatMessagesProps) {
             />
           </div>
         ))}
-        {showLoading &&
-          (lastToolData ? (
-            <ToolSection
-              key={manualToolCallId}
-              tool={lastToolData}
-              isOpen={getIsOpen(manualToolCallId)}
-              onOpenChange={open => handleOpenChange(manualToolCallId, open)}
-              addToolResult={addToolResult}
-            />
-          ) : (
-            <Spinner />
-          ))}
+        {shouldShowToolSection && lastToolData && (
+          <ToolSection
+            key={manualToolCallId}
+            tool={lastToolData}
+            isOpen={getIsOpen(manualToolCallId)}
+            onOpenChange={open => handleOpenChange(manualToolCallId, open)}
+            addToolResult={addToolResult}
+          />
+        )}
+        {shouldShowGenericSpinner && (
+          <Spinner />
+        )}
         <div ref={anchorRef} />
       </div>
       {/* Scroll to bottom button has been removed from here */}

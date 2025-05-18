@@ -12,6 +12,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
 import { Link2, LogOut, Palette } from 'lucide-react'
@@ -27,12 +28,12 @@ interface UserMenuProps {
 export default function UserMenu({ user }: UserMenuProps) {
   const router = useRouter()
   const userName =
-    user.user_metadata?.full_name || user.user_metadata?.name || 'User'
+    user.user_metadata?.full_name || user.user_metadata?.name || 'مستخدم'
   const avatarUrl =
     user.user_metadata?.avatar_url || user.user_metadata?.picture
 
   const getInitials = (name: string, email: string | undefined) => {
-    if (name && name !== 'User') {
+    if (name && name !== 'مستخدم') {
       const names = name.split(' ')
       if (names.length > 1) {
         return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase()
@@ -42,7 +43,7 @@ export default function UserMenu({ user }: UserMenuProps) {
     if (email) {
       return email.split('@')[0].substring(0, 2).toUpperCase()
     }
-    return 'U'
+    return 'م'
   }
 
   const handleLogout = async () => {
@@ -54,14 +55,21 @@ export default function UserMenu({ user }: UserMenuProps) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={avatarUrl} alt={userName} />
-            <AvatarFallback>{getInitials(userName, user.email)}</AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={avatarUrl} alt={userName} />
+                <AvatarFallback>{getInitials(userName, user.email)}</AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>الإعدادات</p>
+        </TooltipContent>
+      </Tooltip>
       <DropdownMenuContent className="w-60" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
@@ -76,8 +84,8 @@ export default function UserMenu({ user }: UserMenuProps) {
         <DropdownMenuSeparator />
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
-            <Palette className="mr-2 h-4 w-4" />
-            <span>Theme</span>
+            <Palette className="ml-3 mr-4 h-4 w-4" />
+            <span>السمة</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <ThemeMenuItems />
@@ -85,8 +93,8 @@ export default function UserMenu({ user }: UserMenuProps) {
         </DropdownMenuSub>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
-            <Link2 className="mr-2 h-4 w-4" />
-            <span>Links</span>
+            <Link2 className="ml-3 mr-4 h-4 w-4" />
+            <span>روابط</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <ExternalLinkItems />
@@ -94,8 +102,8 @@ export default function UserMenu({ user }: UserMenuProps) {
         </DropdownMenuSub>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Logout</span>
+          <LogOut className="ml-3 mr-4 h-4 w-4" />
+          <span>تسجيل الخروج</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

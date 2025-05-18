@@ -1,9 +1,9 @@
 'use client'
 
 import {
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarMenu
+    SidebarGroup,
+    SidebarGroupLabel,
+    SidebarMenu
 } from '@/components/ui/sidebar'
 import { Chat } from '@/lib/types'
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
@@ -115,14 +115,14 @@ export function ChatHistoryClient() {
     <div className="flex flex-col flex-1 h-full">
       <SidebarGroup>
         <div className="flex items-center justify-between w-full">
-          <SidebarGroupLabel className="p-0">History</SidebarGroupLabel>
+          <SidebarGroupLabel className="p-0">السجل</SidebarGroupLabel>
           <ClearHistoryAction empty={isHistoryEmpty} />
         </div>
       </SidebarGroup>
       <div className="flex-1 overflow-y-auto mb-2 relative">
         {isHistoryEmpty && !isPending ? (
           <div className="px-2 text-foreground/30 text-sm text-center py-4">
-            No search history
+            لا يوجد سجل بحث
           </div>
         ) : (
           <SidebarMenu>

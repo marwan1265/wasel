@@ -9,12 +9,12 @@ import { useEffect, useState } from 'react'
 import { createModelId } from '../lib/utils'
 import { Button } from './ui/button'
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList
 } from './ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
 
@@ -78,7 +78,7 @@ export function ModelSelector({ models }: ModelSelectorProps) {
           className="text-sm rounded-full shadow-none focus:ring-0"
         >
           {selectedModel ? (
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center space-x-0 space-x-reverse gap-1">
               <Image
                 src={`/providers/logos/${selectedModel.providerId}.svg`}
                 alt={selectedModel.provider}
@@ -92,16 +92,16 @@ export function ModelSelector({ models }: ModelSelectorProps) {
               )}
             </div>
           ) : (
-            'Select model'
+            'اختر النموذج'
           )}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className="mr-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-0" align="start">
         <Command>
-          <CommandInput placeholder="Search models..." />
+          <CommandInput placeholder="ابحث عن النماذج..." />
           <CommandList>
-            <CommandEmpty>No model found.</CommandEmpty>
+            <CommandEmpty>لم يتم العثور على نموذج.</CommandEmpty>
             {Object.entries(groupedModels).map(([provider, models]) => (
               <CommandGroup key={provider} heading={provider}>
                 {models.map(model => {
@@ -113,7 +113,7 @@ export function ModelSelector({ models }: ModelSelectorProps) {
                       onSelect={handleModelSelect}
                       className="flex justify-between"
                     >
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-0 space-x-reverse gap-2">
                         <Image
                           src={`/providers/logos/${model.providerId}.svg`}
                           alt={model.provider}

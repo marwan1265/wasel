@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { ChatShare } from './chat-share'
 import { RetryButton } from './retry-button'
 import { Button } from './ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
 interface MessageActionsProps {
   message: string
@@ -33,7 +34,7 @@ export function MessageActions({
 
   async function handleCopy() {
     await navigator.clipboard.writeText(message)
-    toast.success('Message copied to clipboard')
+    toast.success('تم نسخ الرسالة إلى الحافظة')
   }
 
   return (
@@ -45,14 +46,21 @@ export function MessageActions({
       )}
     >
       {reload && <RetryButton reload={reload} messageId={messageId} />}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={handleCopy}
-        className="rounded-full"
-      >
-        <Copy size={14} />
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleCopy}
+            className="rounded-full size-9 flex items-center justify-center"
+          >
+            <Copy size={14} />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>نسخ</p>
+        </TooltipContent>
+      </Tooltip>
       {enableShare && chatId && <ChatShare chatId={chatId} />}
     </div>
   )

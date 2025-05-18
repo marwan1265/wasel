@@ -8,12 +8,12 @@ import { cookies } from 'next/headers'
 export const maxDuration = 30
 
 const DEFAULT_MODEL: Model = {
-  id: 'gpt-4o-mini',
-  name: 'GPT-4o mini',
-  provider: 'OpenAI',
-  providerId: 'openai',
+  id: 'deepseek-chat',
+  name: 'DeepSeek V3',
+  provider: 'DeepSeek',
+  providerId: 'deepseek',
   enabled: true,
-  toolCallType: 'native'
+  toolCallType: 'manual'
 }
 
 export async function POST(req: Request) {

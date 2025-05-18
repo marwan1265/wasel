@@ -1,8 +1,8 @@
-# Morphic
+# Wasel
 
 An AI-powered search engine with a generative UI.
 
-![capture](/public/screenshot-2025-05-04.png)
+
 
 ## 🗂️ Overview
 
@@ -40,7 +40,7 @@ An AI-powered search engine with a generative UI.
 
 ### AI Providers
 
-The following AI providers are supported:
+The following AI providers are supported (deepseek is the only one used as of May 18th, 2025):
 
 - OpenAI (Default)
 - Google Generative AI
@@ -103,58 +103,8 @@ Models are configured in `public/config/models.json`. Each model requires its co
 - [Radix UI](https://www.radix-ui.com/) - Unstyled, accessible components
 - [Lucide Icons](https://lucide.dev/) - Beautiful & consistent icons
 
-## 🚀 Quickstart
-
-### 1. Fork and Clone repo
-
-Fork the repo to your Github account, then run the following command to clone the repo:
-
-```bash
-git clone git@github.com:[YOUR_GITHUB_ACCOUNT]/morphic.git
-```
-
-### 2. Install dependencies
-
-```bash
-cd morphic
-bun install
-```
-
-### 3. Configure environment variables
-
-```bash
-cp .env.local.example .env.local
-```
-
-Fill in the required environment variables in `.env.local`:
-
-```bash
-# Required for Core Functionality
-OPENAI_API_KEY=     # Get from https://platform.openai.com/api-keys
-TAVILY_API_KEY=     # Get from https://app.tavily.com/home
-```
-
-For optional features configuration (Redis, SearXNG, etc.), see [CONFIGURATION.md](./docs/CONFIGURATION.md)
-
-### 4. Run app locally
-
-#### Using Bun
-
-```bash
-bun dev
-```
-
-#### Using Docker
-
-```bash
-docker compose up -d
-```
-
-Visit http://localhost:3000 in your browser.
 
 ## 🌐 Deploy
-
-Host your own live version of Morphic with Vercel, Cloudflare Pages, or Docker.
 
 ### Vercel
 
@@ -239,13 +189,4 @@ This will allow you to use Morphic as your default search engine in the browser.
   - grok-2-vision
   - grok-3-beta
 
-## 👥 Contributing
 
-We welcome contributions to Morphic! Whether it's bug reports, feature requests, or pull requests, all contributions are appreciated.
-
-Please see our [Contributing Guide](CONTRIBUTING.md) for details on:
-
-- How to submit issues
-- How to submit pull requests
-- Commit message conventions
-- Development setup

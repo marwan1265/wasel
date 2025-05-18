@@ -69,11 +69,11 @@ export const UserMessage: React.FC<UserMessageProps> = ({
             </div>
           </div>
         ) : (
-          <div className="flex justify-between items-start">
-            <div className="flex-1">{message}</div>
+          <div className="flex flex-col relative">
+            <div className="flex-1 mb-8">{message}</div>
             <div
               className={cn(
-                'absolute top-1 right-1 transition-opacity ml-2',
+                'absolute bottom-0 right-0 transition-opacity',
                 'opacity-0',
                 'group-focus-within:opacity-100',
                 'md:opacity-0',

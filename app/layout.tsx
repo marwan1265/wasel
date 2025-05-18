@@ -4,21 +4,22 @@ import Header from '@/components/header'
 import { ThemeProvider } from '@/components/theme-provider'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { Toaster } from '@/components/ui/sonner'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { createClient } from '@/lib/supabase/server'
 import { cn } from '@/lib/utils'
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Inter as FontSans } from 'next/font/google'
+import { Cairo as FontArabic } from 'next/font/google'
 import './globals.css'
 
-const fontSans = FontSans({
-  subsets: ['latin'],
+const fontArabic = FontArabic({
+  subsets: ['arabic'],
   variable: '--font-sans'
 })
 
-const title = 'Morphic'
+const title = 'واصل'
 const description =
-  'A fully open-source AI-powered answer engine with a generative UI.'
+  'محرك إجابات مدعوم بالذكاء الاصطناعي مفتوح المصدر بالكامل مع واجهة مستخدم توليدية.'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://morphic.sh'),
@@ -61,11 +62,11 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body
         className={cn(
           'min-h-screen flex flex-col font-sans antialiased',
-          fontSans.variable
+          fontArabic.variable
         )}
       >
         <ThemeProvider
@@ -74,17 +75,19 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SidebarProvider defaultOpen>
-            <AppSidebar />
-            <div className="flex flex-col flex-1">
-              <Header user={user} />
-              <main className="flex flex-1 min-h-0">
-                <ArtifactRoot>{children}</ArtifactRoot>
-              </main>
-            </div>
-          </SidebarProvider>
-          <Toaster />
-          <Analytics />
+          <TooltipProvider>
+            <SidebarProvider defaultOpen>
+              <AppSidebar />
+              <div className="flex flex-col flex-1">
+                <Header user={user} />
+                <main className="flex flex-1 min-h-0">
+                  <ArtifactRoot>{children}</ArtifactRoot>
+                </main>
+              </div>
+            </SidebarProvider>
+            <Toaster />
+            <Analytics />
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

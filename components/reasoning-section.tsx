@@ -1,7 +1,8 @@
 'use client'
 
 import { Badge } from '@/components/ui/badge'
-import { Check, Lightbulb, Loader2 } from 'lucide-react'
+import { DeepResearchIcon } from '@/components/ui/icons'
+import { Check, Loader2 } from 'lucide-react'
 import { CollapsibleMessage } from './collapsible-message'
 import { DefaultSkeleton } from './default-skeleton'
 import { BotMessage } from './message'
@@ -28,7 +29,7 @@ export function ReasoningSection({
       <div className="w-full flex flex-col">
         <div className="flex items-center justify-between">
           <Badge className="flex items-center gap-0.5" variant="secondary">
-            <Lightbulb size={16} />
+            <DeepResearchIcon className="size-4" />
             {content.time === 0
               ? 'Thinking...'
               : content.time !== undefined && content.time > 0

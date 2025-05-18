@@ -102,6 +102,43 @@ export class RedisWrapper {
     }
   }
 
+  async zremrangebyscore(key: string, min: number, max: number): Promise<number> {
+    if (this.client instanceof Redis) {
+      return this.client.zremrangebyscore(key, min, max);
+    } else {
+      return (this.client as RedisClientType).zRemRangeByScore(key, min, max);
+    }
+  }
+
+  async zcard(key: string): Promise<number> {
+    if (this.client instanceof Redis) {
+      return this.client.zcard(key);
+    } else {
+      return (this.client as RedisClientType).zCard(key);
+    }
+  }
+
+  async incr(key: string): Promise<number> {
+    if (this.client instanceof Redis) {
+      return this.client.incr(key);
+    } else {
+      return (this.client as RedisClientType).incr(key);
+    }
+  }
+
+  async expire(key: string, seconds: number): Promise<number> {
+    let result;
+    if (this.client instanceof Redis) {
+      result = await this.client.expire(key, seconds);
+    } else {
+      result = await (this.client as RedisClientType).expire(key, seconds);
+    }
+    return result ? 1 : 0; // node-redis returns boolean, upstash returns number (0 or 1)
+                           // Standardizing to return 1 if successful (key found and timeout set), 0 otherwise.
+                           // Upstash already returns 0 or 1. Node-redis: true means set, false means not (e.g. key doesn't exist).
+                           // For consistency, we map boolean to number.
+  }
+
   async close(): Promise<void> {
     if (this.client instanceof Redis) {
       // Upstash Redis doesn't require explicit closing
@@ -145,6 +182,26 @@ class UpstashPipelineWrapper {
     return this
   }
 
+  zremrangebyscore(key: string, min: number, max: number) {
+    this.pipeline.zremrangebyscore(key, min, max);
+    return this;
+  }
+
+  zcard(key: string) {
+    this.pipeline.zcard(key);
+    return this;
+  }
+
+  zrange(key: string, start: number, stop: number) {
+    this.pipeline.zrange(key, start, stop);
+    return this;
+  }
+
+  expire(key: string, seconds: number) {
+    this.pipeline.expire(key, seconds)
+    return this
+  }
+
   async exec() {
     try {
       return await this.pipeline.exec()
@@ -178,7 +235,6 @@ class LocalPipelineWrapper {
   }
 
   hmset(key: string, value: Record<string, any>) {
-    // Convert all values to strings
     const stringValue = Object.fromEntries(
       Object.entries(value).map(([k, v]) => [k, String(v)])
     )
@@ -188,6 +244,26 @@ class LocalPipelineWrapper {
 
   zadd(key: string, score: number, member: string) {
     this.pipeline.zAdd(key, { score, value: member })
+    return this
+  }
+
+  zremrangebyscore(key: string, min: number, max: number) {
+    this.pipeline.zRemRangeByScore(key, min, max);
+    return this;
+  }
+
+  zcard(key: string) {
+    this.pipeline.zCard(key);
+    return this;
+  }
+
+  zrange(key: string, start: number, stop: number) {
+    this.pipeline.zRange(key, start, stop);
+    return this;
+  }
+
+  expire(key: string, seconds: number) {
+    this.pipeline.expire(key, seconds)
     return this
   }
 

@@ -2,21 +2,21 @@
 
 import { shareChat } from '@/lib/actions/chat'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
-import { cn } from '@/lib/utils'
 import { Share } from 'lucide-react'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { Button } from './ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
 } from './ui/dialog'
 import { Spinner } from './ui/spinner'
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
 interface ChatShareProps {
   chatId: string
@@ -35,12 +35,12 @@ export function ChatShare({ chatId, className }: ChatShareProps) {
     })
     const result = await shareChat(chatId)
     if (!result) {
-      toast.error('Failed to share chat')
+      toast.error('فشل في مشاركة المحادثة')
       return
     }
 
     if (!result.sharePath) {
-      toast.error('Could not copy link to clipboard')
+      toast.error('لا يمكن نسخ الرابط إلى الحافظة')
       return
     }
 
@@ -51,10 +51,10 @@ export function ChatShare({ chatId, className }: ChatShareProps) {
   const handleCopy = () => {
     if (shareUrl) {
       copyToClipboard(shareUrl)
-      toast.success('Link copied to clipboard')
+      toast.success('تم نسخ الرابط إلى الحافظة')
       setOpen(false)
     } else {
-      toast.error('No link to copy')
+      toast.error('لا يوجد رابط للنسخ')
     }
   }
 
@@ -67,31 +67,38 @@ export function ChatShare({ chatId, className }: ChatShareProps) {
         aria-describedby="share-dialog-description"
       >
         <DialogTrigger asChild>
-          <Button
-            className={cn('rounded-full')}
-            size="icon"
-            variant={'ghost'}
-            onClick={() => setOpen(true)}
-          >
-            <Share size={14} />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="rounded-full size-9 flex items-center justify-center"
+                size="icon"
+                variant="ghost"
+                onClick={() => setOpen(true)}
+              >
+                <Share size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>مشاركة</p>
+            </TooltipContent>
+          </Tooltip>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Share link to search result</DialogTitle>
+            <DialogTitle>مشاركة رابط نتيجة البحث</DialogTitle>
             <DialogDescription>
-              Anyone with the link will be able to view this search result.
+              يمكن لأي شخص لديه الرابط مشاهدة نتيجة البحث هذه.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="items-center">
             {!shareUrl && (
               <Button onClick={handleShare} disabled={pending} size="sm">
-                {pending ? <Spinner /> : 'Get link'}
+                {pending ? <Spinner /> : 'الحصول على الرابط'}
               </Button>
             )}
             {shareUrl && (
               <Button onClick={handleCopy} disabled={pending} size="sm">
-                {'Copy link'}
+                {'نسخ الرابط'}
               </Button>
             )}
           </DialogFooter>

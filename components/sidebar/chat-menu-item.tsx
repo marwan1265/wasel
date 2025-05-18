@@ -18,7 +18,6 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem
 } from '@/components/ui/sidebar'
@@ -41,7 +40,7 @@ const formatDateWithTime = (date: Date | string) => {
   yesterday.setDate(yesterday.getDate() - 1)
 
   const formatTime = (date: Date) => {
-    return date.toLocaleString('en-US', {
+    return date.toLocaleString('ar-SA', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: true
@@ -53,15 +52,15 @@ const formatDateWithTime = (date: Date | string) => {
     parsedDate.getMonth() === now.getMonth() &&
     parsedDate.getFullYear() === now.getFullYear()
   ) {
-    return `Today, ${formatTime(parsedDate)}`
+    return `اليوم، ${formatTime(parsedDate)}`
   } else if (
     parsedDate.getDate() === yesterday.getDate() &&
     parsedDate.getMonth() === yesterday.getMonth() &&
     parsedDate.getFullYear() === yesterday.getFullYear()
   ) {
-    return `Yesterday, ${formatTime(parsedDate)}`
+    return `الأمس، ${formatTime(parsedDate)}`
   } else {
-    return parsedDate.toLocaleString('en-US', {
+    return parsedDate.toLocaleString('ar-SA', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -90,7 +89,7 @@ export function ChatMenuItem({ chat }: ChatMenuItemProps) {
           throw new Error(errorData.error || 'Failed to delete chat')
         }
 
-        toast.success('Chat deleted')
+        toast.success('تم حذف المحادثة')
         setIsMenuOpen(false) // Close menu on success
         setDialogOpen(false) // Close dialog on success
 
@@ -109,80 +108,84 @@ export function ChatMenuItem({ chat }: ChatMenuItemProps) {
   }
 
   return (
-    <SidebarMenuItem>
+    <SidebarMenuItem className="relative">
       <SidebarMenuButton
         asChild
         isActive={isActive}
-        className="h-auto flex-col gap-0.5 items-start p-2 pr-8"
+        className="h-auto flex-col gap-0.5 items-end p-2 pl-8 pr-2 w-full"
       >
         <Link href={chat.path}>
-          <div className="text-xs font-medium truncate select-none w-full">
+          <div className="text-xs font-medium truncate select-none w-full text-right">
             {chat.title}
           </div>
-          <div className="text-xs text-muted-foreground w-full">
+          <div className="text-xs text-muted-foreground w-full text-right">
             {formatDateWithTime(chat.createdAt)}
           </div>
         </Link>
       </SidebarMenuButton>
 
-      <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-        <DropdownMenuTrigger asChild>
-          <SidebarMenuAction disabled={isPending} className="size-7 p-1 mr-1">
-            {isPending ? (
-              <div className="flex items-center justify-center size-full">
-                <Spinner />
-              </div>
-            ) : (
-              <MoreHorizontal size={16} />
-            )}
-            <span className="sr-only">Chat Actions</span>
-          </SidebarMenuAction>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent side="right" align="start">
-          <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <AlertDialogTrigger asChild>
-              <DropdownMenuItem
-                disabled={isPending}
-                className="gap-2 text-destructive focus:text-destructive"
-                onSelect={e => {
-                  e.preventDefault()
-                  // Don't call onDelete directly, just open the dialog
-                }}
-              >
-                <Trash2 size={14} />
-                Delete Chat
-              </DropdownMenuItem>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete
-                  this chat history.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={isPending}>
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
+      <div className="absolute left-1 top-1/2 transform -translate-y-1/2">
+        <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+          <DropdownMenuTrigger asChild>
+            <button 
+              disabled={isPending}
+              className="size-7 p-1 flex items-center justify-center rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 transition-transform"
+            >
+              {isPending ? (
+                <div className="flex items-center justify-center size-full">
+                  <Spinner />
+                </div>
+              ) : (
+                <MoreHorizontal size={16} />
+              )}
+              <span className="sr-only">Chat Actions</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="left" align="start">
+            <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <DropdownMenuItem
                   disabled={isPending}
-                  onClick={onDelete} // Call onDelete here
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  className="gap-2 text-destructive focus:text-destructive"
+                  onSelect={e => {
+                    e.preventDefault()
+                    // Don't call onDelete directly, just open the dialog
+                  }}
                 >
-                  {isPending ? (
-                    <div className="flex items-center justify-center">
-                      <Spinner />
-                    </div>
-                  ) : (
-                    'Delete'
-                  )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </DropdownMenuContent>
-      </DropdownMenu>
+                  <Trash2 size={14} />
+                  حذف المحادثة
+                </DropdownMenuItem>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>هل أنت متأكد تماماً؟</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    لا يمكن التراجع عن هذا الإجراء. سيؤدي هذا إلى حذف سجل المحادثة هذا بشكل دائم.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isPending}>
+                    إلغاء
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={isPending}
+                    onClick={onDelete} // Call onDelete here
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {isPending ? (
+                      <div className="flex items-center justify-center">
+                        <Spinner />
+                      </div>
+                    ) : (
+                      'حذف'
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </SidebarMenuItem>
   )
 }
