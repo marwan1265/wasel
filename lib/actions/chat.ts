@@ -265,8 +265,10 @@ export async function clearChats(
   const pipeline = redis.pipeline()
 
   for (const chat of chats) {
-    pipeline.del(chat)
-    pipeline.zrem(userChatKey, chat)
+    if (chat !== null && typeof chat === 'string') {
+      pipeline.del(chat)
+      pipeline.zrem(userChatKey, chat)
+    }
   }
 
   await pipeline.exec()
