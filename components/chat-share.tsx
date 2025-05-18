@@ -1,5 +1,6 @@
 'use client'
 
+import { useCurrentUserId } from '@/hooks/use-current-user-id'
 import { shareChat } from '@/lib/actions/chat'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { Share } from 'lucide-react'
@@ -28,12 +29,17 @@ export function ChatShare({ chatId, className }: ChatShareProps) {
   const [pending, startTransition] = useTransition()
   const { copyToClipboard } = useCopyToClipboard({ timeout: 1000 })
   const [shareUrl, setShareUrl] = useState('')
+  const userId = useCurrentUserId()
 
   const handleShare = async () => {
     startTransition(() => {
       setOpen(true)
     })
-    const result = await shareChat(chatId)
+    if (!userId) {
+      toast.error('فشل في تحديد المستخدم لمشاركة المحادثة')
+      return
+    }
+    const result = await shareChat(chatId, userId)
     if (!result) {
       toast.error('فشل في مشاركة المحادثة')
       return
