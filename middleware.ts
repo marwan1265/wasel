@@ -1,4 +1,5 @@
 import { getCurrentUserId } from '@/lib/auth/get-current-user';
+import { CHAT_MESSAGE_ACTION, GENERAL_API_ACTION } from '@/lib/config/rate-limits'; // Import action constants
 import { checkRateLimit } from '@/lib/rate-limiter';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -22,11 +23,19 @@ export async function middleware(request: NextRequest) {
     const userId = await getCurrentUserId(); 
 
     let action: string;
-    if (pathname.startsWith('/api/chat')) { // Assuming /api/chat is the endpoint for sending messages
-      action = 'chat_message'; 
+    // Specifically identify chat message submissions
+    if (pathname.startsWith('/api/chat') && request.method === 'POST') { 
+      action = CHAT_MESSAGE_ACTION;
+    } else if (pathname.startsWith('/api/chats') && request.method === 'GET') { // History view
+      action = GENERAL_API_ACTION;
+    } else if (pathname.startsWith('/api/chat/') && request.method === 'DELETE') { // Deleting a chat
+      action = GENERAL_API_ACTION;
+    } else if (pathname.startsWith('/api/share/')) { // Sharing related endpoints
+      action = GENERAL_API_ACTION;
     } else {
-      // Generic action for other API routes, or you can define more specific actions
-      action = `api_request:${pathname.replace(/\//g, '_').replace(/[:*\[\]]/g, '')}`;
+      // For any other /api routes not explicitly handled, use general action.
+      // Consider if some of these might need specific, more restrictive limits too.
+      action = GENERAL_API_ACTION; 
     }
 
     const result = await checkRateLimit(userId, action);
@@ -45,7 +54,7 @@ export async function middleware(request: NextRequest) {
       
       const responseBody = JSON.stringify({
         error: 'Too Many Requests',
-        message: `Rate limit exceeded. Type: ${result.reason || 'general'}. Try again in ${retryAfter} seconds.`,
+        message: `Rate limit exceeded. Action: ${action}, Reason: ${result.reason || 'general'}. Try again in ${retryAfter} seconds.`,
       });
       return new NextResponse(responseBody, {
         status: 429,

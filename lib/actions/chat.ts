@@ -74,51 +74,161 @@ export async function getChatsPage(
 ): Promise<{ chats: Chat[]; nextOffset: number | null }> {
   console.log('[getChatsPage] Called with userId:', userId, 'limit:', limit, 'offset:', offset);
   try {
-    const supabase = await createSupabaseClient() // Instantiate Supabase client
+    const supabase = await createSupabaseClient();
+    const redis = await getRedis();
 
     // 1. Fetch paginated conversation metadata from Supabase
-    console.log('[getChatsPage] Fetching conversations from Supabase for userId:', userId);
+    console.log('[getChatsPage] Fetching conversations metadata from Supabase for userId:', userId);
     const { data: conversationsMeta, error: convListError } = await supabase
       .from('conversations')
       .select('id, title, created_at, user_id, path, share_path') // Select necessary fields
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1)
+      .range(offset, offset + limit - 1);
 
     if (convListError) {
-      console.error('[getChatsPage] Error fetching conversations from Supabase:', convListError);
-      return { chats: [], nextOffset: null }
+      console.error('[getChatsPage] Error fetching conversations metadata from Supabase:', convListError);
+      return { chats: [], nextOffset: null };
     }
-    console.log('[getChatsPage] Fetched conversationsMeta:', conversationsMeta);
+    console.log('[getChatsPage] Fetched conversationsMeta count:', conversationsMeta?.length ?? 0);
 
     if (!conversationsMeta || conversationsMeta.length === 0) {
-      console.log('[getChatsPage] No conversations found for userId:', userId);
-      return { chats: [], nextOffset: null }
+      console.log('[getChatsPage] No conversations metadata found for userId:', userId);
+      return { chats: [], nextOffset: null };
     }
 
-    // 2. Fetch full chat details for each conversation ID
-    // This will utilize the getChat function which has cache-aside logic
-    const chatPromises = conversationsMeta.map(conv => {
-      console.log('[getChatsPage] Preparing to call getChat for conv.id:', conv.id, 'and userId:', userId);
-      if (conv.id === null || typeof conv.id === 'undefined') {
-        console.warn('[getChatsPage] conv.id is null or undefined before calling getChat. Skipping this conversation. Conversation object:', conv);
-        return Promise.resolve(null); // Avoid calling getChat with null ID
+    const conversationIds = conversationsMeta.map(c => c.id);
+    let resolvedChats: Chat[] = [];
+    const chatsToFetchFromDbMetas: typeof conversationsMeta = [];
+
+    // 2. Attempt to fetch full chat details from Redis cache
+    console.log('[getChatsPage] Attempting to fetch', conversationIds.length, 'chats from Redis cache.');
+    const redisPipeline = redis.pipeline();
+    conversationIds.forEach(id => redisPipeline.hgetall(`chat:${id}`));
+    const cachedChatsData = await redisPipeline.exec() as ([Error | null, Record<string, string> | null][]);
+
+    for (let i = 0; i < conversationsMeta.length; i++) {
+      const meta = conversationsMeta[i];
+      const cacheResult = cachedChatsData[i];
+      // cacheResult is an array: [error, data]
+      if (cacheResult && cacheResult[1] && Object.keys(cacheResult[1]).length > 0) {
+        const chatFromCacheData = cacheResult[1];
+        console.log('[getChatsPage] Cache hit for chat ID:', meta.id);
+        const chat: Partial<Chat> = {};
+        Object.keys(chatFromCacheData).forEach(key => {
+          (chat as any)[key] = (chatFromCacheData as any)[key];
+        });
+
+        if (typeof chat.messages === 'string') {
+          try {
+            chat.messages = JSON.parse(chat.messages) as ExtendedCoreMessage[];
+          } catch (e) {
+            console.error('[getChatsPage] Error parsing messages from cache for chat ID:', meta.id, e);
+            chat.messages = [];
+          }
+        }
+        if (chat.createdAt && !(chat.createdAt instanceof Date)) {
+          chat.createdAt = new Date(chat.createdAt as string);
+        }
+        resolvedChats.push(chat as Chat);
+      } else {
+        console.log('[getChatsPage] Cache miss for chat ID:', meta.id);
+        chatsToFetchFromDbMetas.push(meta);
       }
-      return getChat(conv.id, userId);
-    });
-    const resolvedChats = (await Promise.all(chatPromises)).filter(
-      (chat): chat is Chat => chat !== null
-    )
-    console.log('[getChatsPage] Resolved chats count:', resolvedChats.length);
+    }
+    console.log('[getChatsPage] Fetched', resolvedChats.length, 'chats from cache.', chatsToFetchFromDbMetas.length, 'chats to fetch from DB.');
 
-    // 3. Determine nextOffset
-    const nextOffset = conversationsMeta.length === limit ? offset + limit : null
-    console.log('[getChatsPage] nextOffset:', nextOffset);
+    // 3. Fetch remaining chats (cache misses) from Supabase
+    if (chatsToFetchFromDbMetas.length > 0) {
+      const idsToFetchFromDb = chatsToFetchFromDbMetas.map(meta => meta.id);
+      console.log('[getChatsPage] Fetching messages for', idsToFetchFromDb.length, 'conversations from Supabase.');
+      
+      const { data: messagesData, error: msgError } = await supabase
+        .from('messages')
+        .select('*')
+        .in('conversation_id', idsToFetchFromDb)
+        .order('created_at', { ascending: true });
 
-    return { chats: resolvedChats, nextOffset }
+      if (msgError) {
+        console.error('[getChatsPage] Error fetching messages from Supabase:', msgError);
+        // We might still proceed with chats found in cache, or return error
+        // For now, continue and those chats won't have messages
+      }
+      console.log('[getChatsPage] Fetched', messagesData?.length ?? 0, 'messages from Supabase.');
+
+      const messagesByConvId = (messagesData || []).reduce<Record<string, any[]>>((acc, msg) => {
+        const convId = msg.conversation_id;
+        if (!acc[convId]) acc[convId] = [];
+        acc[convId].push(msg);
+        return acc;
+      }, {});
+
+      const newChatsToCachePipeline = redis.pipeline();
+      for (const meta of chatsToFetchFromDbMetas) {
+        const conversationMessages = messagesByConvId[meta.id] || [];
+        const reconstructedMessages: ExtendedCoreMessage[] = conversationMessages.map(msg => {
+          let content: CoreMessage['content'] | JSONValue = msg.content;
+          try {
+            if (typeof msg.content === 'string' && (msg.content.startsWith('{') || msg.content.startsWith('['))) {
+              content = JSON.parse(msg.content);
+            }
+          } catch (e) { /* keep content as string if parsing fails */ }
+          return {
+            role: msg.role as CoreMessage['role'] | 'data',
+            content: content,
+            // Ensure other ExtendedCoreMessage fields are mapped if necessary
+            // id: msg.id, // if your messages have IDs and they are part of ExtendedCoreMessage
+            // name: msg.name, // if applicable
+            // tool_calls: msg.tool_calls, // if applicable
+            // tool_call_id: msg.tool_call_id, // if applicable
+          };
+        });
+
+        const chatFromDb: Chat = {
+          id: meta.id,
+          title: meta.title,
+          createdAt: new Date(meta.created_at),
+          userId: meta.user_id,
+          path: meta.path,
+          messages: reconstructedMessages,
+          sharePath: meta.share_path || undefined, // Ensure type consistency
+        };
+        resolvedChats.push(chatFromDb);
+        console.log('[getChatsPage] Reconstructed chat from DB:', chatFromDb.id);
+
+        const chatToCache = {
+          ...chatFromDb,
+          messages: JSON.stringify(chatFromDb.messages), // Stringify messages for Redis
+        };
+        newChatsToCachePipeline.hmset(`chat:${chatFromDb.id}`, chatToCache);
+      }
+
+      if (chatsToFetchFromDbMetas.length > 0) {
+        console.log('[getChatsPage] Attempting to cache', chatsToFetchFromDbMetas.length, 'newly fetched chats to Redis.');
+        try {
+          await newChatsToCachePipeline.exec();
+          console.log('[getChatsPage] Successfully cached newly fetched chats.');
+        } catch (cacheError) {
+          console.error('[getChatsPage] Error caching newly fetched chats to Redis:', cacheError);
+        }
+      }
+    }
+
+    // 4. Sort all resolved chats by createdAt date, as they might be mixed from cache and DB
+    resolvedChats.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // 5. Determine nextOffset
+    const nextOffset = conversationsMeta.length === limit ? offset + limit : null;
+    console.log('[getChatsPage] nextOffset:', nextOffset, 'Returning', resolvedChats.length, 'chats.');
+
+    return { chats: resolvedChats, nextOffset };
   } catch (error) {
-    console.error('[getChatsPage] Error fetching chat page:', error); // This is the error you were seeing
-    return { chats: [], nextOffset: null }
+    console.error('[getChatsPage] Unexpected error in getChatsPage:', error);
+    // It's important to see if this top-level catch is ever hit, or if errors are caught by Supabase/Redis clients
+    // and handled (e.g. returning null or empty arrays) before this point.
+    // A 429 would typically be an error on the HTTP response from Supabase/Redis, not an exception caught here,
+    // unless the client library throws an exception for it.
+    return { chats: [], nextOffset: null };
   }
 }
 

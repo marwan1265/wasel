@@ -2,13 +2,12 @@ import { getUserTier, UserTier } from '@/lib/auth/user-tier';
 import {
     dailyRateLimitConfig,
     DailyRateLimitRule,
+    GENERAL_API_ACTION,
     RateLimitRule,
     timeWindowRateLimitConfig
 } from '@/lib/config/rate-limits';
 import { getRedisClient } from '@/lib/redis/config';
 // Removed getCurrentUserId import as it's not used directly in this file
-
-const ACTION_GENERIC_API = 'api_request';
 
 // Helper function to get seconds until the end of the current day (UTC)
 function getSecondsUntilUTCEndOfDay(): number {
@@ -23,17 +22,21 @@ export interface RateLimitCheckResult {
   remaining: number;
   reset: Date; // Approximate time when the relevant limit will reset
   retryAfterSeconds?: number;
-  reason?: 'daily_limit' | 'time_window_limit'; // Indicates which limit was hit
+  reason?: 'daily_limit' | 'time_window_limit' | 'config_error'; // Indicates which limit was hit
 }
 
 // Gets the rule for the user, specific to time-window limits
-function getTimeWindowRuleForUser(tier: UserTier, _action: string): RateLimitRule {
-  return timeWindowRateLimitConfig[tier];
+function getTimeWindowRuleForUser(tier: UserTier, action: string): RateLimitRule | null {
+  const tierRules = timeWindowRateLimitConfig[tier];
+  if (!tierRules) return null; // Should not happen if config is complete
+  return tierRules[action] || tierRules[GENERAL_API_ACTION]; // Fallback to general API action rule
 }
 
 // Gets the rule for the user, specific to daily limits
-function getDailyRuleForUser(tier: UserTier, _action: string): DailyRateLimitRule {
-  return dailyRateLimitConfig[tier];
+function getDailyRuleForUser(tier: UserTier, action: string): DailyRateLimitRule | null {
+  const tierRules = dailyRateLimitConfig[tier];
+  if (!tierRules) return null; // Should not happen if config is complete
+  return tierRules[action] || tierRules[GENERAL_API_ACTION]; // Fallback to general API action rule
 }
 
 export async function checkRateLimit(
@@ -45,10 +48,16 @@ export async function checkRateLimit(
 
   // --- Daily Limit Check ---
   const dailyRule = getDailyRuleForUser(userTier, action);
+  if (!dailyRule) {
+    console.error(`Rate limit config error: No daily rule found for tier ${userTier}, action ${action}`);
+    return { allowed: true, limit: Infinity, remaining: Infinity, reset: new Date(), reason: 'config_error' }; // Fail open on config error
+  }
   const todayUTC = new Date().toISOString().split('T')[0]; // YYYY-MM-DD in UTC
   const dailyKey = `rate_limit_daily:${userId}:${action}:${todayUTC}`;
 
-  const dailyCount = await redis.incr(dailyKey);
+  const dailyCountResult = await redis.incr(dailyKey);
+  const dailyCount = typeof dailyCountResult === 'number' ? dailyCountResult : 0;
+
   if (dailyCount === 1) { // First request for this user, action, day
     await redis.expire(dailyKey, getSecondsUntilUTCEndOfDay());
   }
@@ -73,6 +82,10 @@ export async function checkRateLimit(
 
   // --- Time Window Limit Check ---
   const timeWindowRule = getTimeWindowRuleForUser(userTier, action);
+  if (!timeWindowRule) {
+    console.error(`Rate limit config error: No time window rule found for tier ${userTier}, action ${action}`);
+    return { allowed: true, limit: Infinity, remaining: Infinity, reset: new Date(), reason: 'config_error' }; // Fail open on config error
+  }
   const nowSeconds = Math.floor(Date.now() / 1000);
   const windowStartSeconds = nowSeconds - timeWindowRule.windowSeconds;
   const timeWindowKey = `rate_limit_window:${userId}:${action}`;
@@ -84,14 +97,19 @@ export async function checkRateLimit(
   pipeline.zcard(timeWindowKey);
   pipeline.expire(timeWindowKey, timeWindowRule.windowSeconds + 60);
   pipeline.zrange(timeWindowKey, 0, 0); // Oldest request for reset calculation
-  const results = await pipeline.exec();
+  
+  // Each result in the array is a tuple: [Error | null, resultValue]
+  const results = await pipeline.exec() as [Error | null, any][];
 
-  const currentWindowCount = typeof results[2] === 'number' ? results[2] : 0;
+  const zcardResultTuple = results[2]; // zcard is the 3rd command in pipeline
+  const currentWindowCount = (zcardResultTuple && !zcardResultTuple[0] && typeof zcardResultTuple[1] === 'number') ? zcardResultTuple[1] : 0;
 
   let windowResetTimeSeconds: number;
-  const oldestRequestMember = (results[4] as string[])?.[0];
-  if (oldestRequestMember) {
-    const oldestRequestTimestamp = parseInt(oldestRequestMember.split('-')[0], 10);
+  const zrangeResultTuple = results[4]; // zrange is the 5th command
+  const oldestRequestMembers = (zrangeResultTuple && !zrangeResultTuple[0] && Array.isArray(zrangeResultTuple[1])) ? zrangeResultTuple[1] as string[] : [];
+  
+  if (oldestRequestMembers.length > 0 && oldestRequestMembers[0]) {
+    const oldestRequestTimestamp = parseInt(oldestRequestMembers[0].split('-')[0], 10);
     windowResetTimeSeconds = oldestRequestTimestamp + timeWindowRule.windowSeconds;
   } else {
     windowResetTimeSeconds = nowSeconds + timeWindowRule.windowSeconds;
