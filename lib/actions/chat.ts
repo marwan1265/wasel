@@ -33,10 +33,12 @@ export async function getChats(userId?: string | null) {
     }
 
     const results = await Promise.all(
-      chats.map(async chatKey => {
-        const chat = await redis.hgetall(chatKey)
-        return chat
-      })
+      chats
+        .filter((chatKey): chatKey is string => typeof chatKey === 'string' && chatKey !== null)
+        .map(async chatKey => {
+          const chat = await redis.hgetall(chatKey)
+          return chat
+        })
     )
 
     return results
