@@ -139,6 +139,14 @@ export class RedisWrapper {
                            // For consistency, we map boolean to number.
   }
 
+  async get(key: string): Promise<string | null> {
+    if (this.client instanceof Redis) {
+      return this.client.get(key);
+    } else {
+      return (this.client as RedisClientType).get(key);
+    }
+  }
+
   async close(): Promise<void> {
     if (this.client instanceof Redis) {
       // Upstash Redis doesn't require explicit closing

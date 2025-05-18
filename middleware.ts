@@ -1,6 +1,7 @@
 import { getCurrentUserId } from '@/lib/auth/get-current-user';
 import { CHAT_MESSAGE_ACTION, GENERAL_API_ACTION } from '@/lib/config/rate-limits'; // Import action constants
 import { checkRateLimit } from '@/lib/rate-limiter';
+import { getRedisClient } from '@/lib/redis/config'; // Import Redis client
 import { NextRequest, NextResponse } from 'next/server';
 
 // Specify which paths should be rate-limited
@@ -21,6 +22,7 @@ export async function middleware(request: NextRequest) {
 
   try {
     const userId = await getCurrentUserId(); 
+    console.log('[Middleware] Rate Limiting. Path:', pathname, 'Method:', request.method, 'UserID:', userId); // Temporary log
 
     let action: string;
     // Specifically identify chat message submissions
@@ -37,6 +39,41 @@ export async function middleware(request: NextRequest) {
       // Consider if some of these might need specific, more restrictive limits too.
       action = GENERAL_API_ACTION; 
     }
+
+    // ---- Block CHAT_MESSAGE_ACTION for users who failed anonymous sign-in ----
+    if (userId === 'anonymous' && action === CHAT_MESSAGE_ACTION) {
+      console.log(
+        `[Middleware] Blocking CHAT_MESSAGE_ACTION for unauthenticated user (ID: 'anonymous'), Path: ${pathname}`
+      );
+      return new NextResponse(
+        JSON.stringify({
+          error: 'Authentication Required',
+          message: 'You must be signed in to send messages.',
+        }),
+        { status: 403 } // 403 Forbidden is more appropriate than 429 here
+      );
+    }
+    // ---- End Block ----
+
+    // ---- Enhanced Logging for Guest Chat Messages (successful anonymous sign-in) ----
+    // This log now only applies to users with actual Supabase anonymous UUIDs who are classified as 'guest' tier
+    // OR if you decide to still log for userId === 'anonymous' for GENERAL_API_ACTION (but they can't send messages)
+    if (userId === 'anonymous' && action === CHAT_MESSAGE_ACTION) { // This block is now effectively dead code due to the check above, but keep for structure or if logic changes.
+      // Retaining the logging structure in case the blocking logic above is altered or for other specific 'anonymous' actions.
+      const redis = await getRedisClient();
+      const timeWindowKey = `rate_limit_window:${userId}:${action}`;
+      const currentWindowCount = await redis.zcard(timeWindowKey);
+      const todayUTC = new Date().toISOString().split('T')[0];
+      const dailyKey = `rate_limit_daily:${userId}:${action}:${todayUTC}`;
+      const currentDailyCount = await redis.get(dailyKey);
+      console.log(
+        `[Middleware] Logging for user ('${userId}') - Action: ${action}, Path: ${pathname}, ` +
+        `Window Count (zcard): ${currentWindowCount}, Daily Count (get): ${currentDailyCount || '0'}`
+      );
+    } else {
+      console.log('[Middleware] Rate Limiting. Path:', pathname, 'Method:', request.method, 'UserID:', userId, 'Action:', action);
+    }
+    // ---- End Enhanced Logging ----
 
     const result = await checkRateLimit(userId, action);
     
