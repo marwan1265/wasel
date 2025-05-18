@@ -12,6 +12,7 @@ import {
     AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { useCurrentUserId } from '@/hooks/use-current-user-id'
 import { clearChats } from '@/lib/actions/chat'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
@@ -24,6 +25,7 @@ type ClearHistoryProps = {
 export function ClearHistory({ empty }: ClearHistoryProps) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const userId = useCurrentUserId()
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
@@ -45,7 +47,11 @@ export function ClearHistory({ empty }: ClearHistoryProps) {
             onClick={event => {
               event.preventDefault()
               startTransition(async () => {
-                const result = await clearChats()
+                if (!userId) {
+                  toast.error('فشل في تحديد المستخدم لمسح السجل')
+                  return
+                }
+                const result = await clearChats(userId)
                 if (result?.error) {
                   toast.error(result.error)
                 } else {
