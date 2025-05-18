@@ -221,7 +221,7 @@ export async function getChat(id: string, userId: string) {
     userId: conversation.user_id,
     path: conversation.path,
     messages: messages,
-    sharePath: conversation.share_path || undefined
+    sharePath: conversation.share_path || null
   }
   console.log('[getChat] Constructed chatFromDb for id:', id, chatFromDb);
 
@@ -351,19 +351,16 @@ export async function deleteChat(
     const redis = await getRedis()
     const userKey = getUserChatKey(userId)
     const chatKey = `chat:${chatId}`
+    console.log(`[deleteChat] Called for chatId: ${chatId}, userId: ${userId}. Effective chatKey: ${chatKey}, userKey: ${userKey}`);
 
     const chatDetails = await redis.hgetall<Chat>(chatKey)
     if (!chatDetails || Object.keys(chatDetails).length === 0) {
-      console.warn(`Attempted to delete non-existent chat: ${chatId}`)
-      return { error: 'Chat not found' }
+      console.warn(`[deleteChat] Chat details not found in Redis cache (hgetall check) for chatKey: ${chatKey}. UserKey: ${userKey}. Will still attempt deletion from sorted set and Supabase.`)
+    } else {
+      console.log(`[deleteChat] Chat details found in Redis cache for chatKey: ${chatKey}. Proceeding with full deletion.`);
     }
 
-    // Optional: Check if the chat actually belongs to the user if userId is provided and matters
-    // if (chatDetails.userId !== userId) {
-    //  console.warn(`Unauthorized attempt to delete chat ${chatId} by user ${userId}`)
-    //  return { error: 'Unauthorized' }
-    // }
-
+    console.log(`[deleteChat] Attempting Redis pipeline: DEL ${chatKey}, ZREM ${userKey} ${chatKey}`);
     const pipeline = redis.pipeline()
     pipeline.del(chatKey)
     pipeline.zrem(userKey, chatKey) // Use chatKey consistently
