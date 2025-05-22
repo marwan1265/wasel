@@ -6,6 +6,7 @@ import { User } from '@supabase/supabase-js'
 // import Link from 'next/link' // No longer needed directly here for Sign In button
 import React from 'react'
 // import { Button } from './ui/button' // No longer needed directly here for Sign In button
+import { useUserTier } from '@/hooks/use-user-tier'
 import { CHAT_ID } from '@/lib/constants'
 import { useChat } from '@ai-sdk/react'
 import { MessageCirclePlus } from 'lucide-react'
@@ -23,12 +24,17 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
   const { open } = useSidebar()
   const router = useRouter()
   const { setMessages } = useChat({ id: CHAT_ID })
+  const { isGuest, isLoading } = useUserTier()
 
   const handleNewChat = () => {
     setMessages([])
     // We don't have access to closeArtifact() here
     router.push('/')
   }
+
+  // Determine if we should show guest menu
+  // Show guest menu if: no user at all OR user exists but is a guest tier
+  const shouldShowGuestMenu = !user || isGuest
 
   return (
     <header
@@ -58,7 +64,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
             <p>محادثة جديدة</p>
           </TooltipContent>
         </Tooltip>
-        {user ? <UserMenu user={user} /> : <GuestMenu />}
+        {shouldShowGuestMenu ? <GuestMenu /> : <UserMenu user={user!} />}
       </div>
     </header>
   )
