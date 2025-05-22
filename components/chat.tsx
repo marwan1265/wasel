@@ -74,7 +74,7 @@ export function Chat({
 
   useEffect(() => {
     setMessages(savedMessages)
-  }, [id, savedMessages, setMessages])
+  }, [id])
 
   const onQuerySelect = (query: string) => {
     append({
