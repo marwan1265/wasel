@@ -1,3 +1,6 @@
+# Project Title
+// Minor change to trigger a new commit
+
 # Wasel
 
 An AI-powered search engine with a generative UI.
