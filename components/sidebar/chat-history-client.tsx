@@ -1,13 +1,16 @@
 'use client'
 
 import {
-    SidebarGroup,
-    SidebarGroupLabel,
-    SidebarMenu
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarInput,
+  SidebarMenu
 } from '@/components/ui/sidebar'
 import { useCurrentUserId } from '@/hooks/use-current-user-id'
+import { useDebounce } from '@/hooks/use-debounce'
 import { Chat } from '@/lib/types'
-import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
+import { Search, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { ChatHistorySkeleton } from './chat-history-skeleton'
 import { ChatMenuItem } from './chat-menu-item'
@@ -25,6 +28,8 @@ export function ChatHistoryClient() {
   const [chats, setChats] = useState<Chat[]>([])
   const [nextOffset, setNextOffset] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -118,6 +123,18 @@ export function ChatHistoryClient() {
     }
   }, [fetchMoreChats, nextOffset, isLoading, isPending, userId])
 
+  // Filter chats based on search term
+  const filteredChats = useMemo(() => {
+    if (!debouncedSearchTerm.trim()) {
+      return chats
+    }
+    
+    const searchTermLower = debouncedSearchTerm.toLowerCase()
+    return chats.filter(chat => 
+      chat.title?.toLowerCase().includes(searchTermLower)
+    )
+  }, [chats, debouncedSearchTerm])
+
   const isHistoryEmpty = !isLoading && !chats.length && nextOffset === null
 
   return (
@@ -128,6 +145,37 @@ export function ChatHistoryClient() {
           <ClearHistoryAction empty={isHistoryEmpty} />
         </div>
       </SidebarGroup>
+      
+      {/* Search Bar */}
+      {userId && chats.length > 0 && (
+        <div className="px-2 pb-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <SidebarInput
+              placeholder="بحث في المحادثات..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setSearchTerm('')
+                }
+              }}
+              className="pl-9 pr-9 text-right"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                type="button"
+                aria-label="مسح البحث"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+      
       <div className="flex-1 overflow-y-auto mb-2 relative">
         {userId && isHistoryEmpty && !isPending ? (
           <div className="px-2 text-foreground/30 text-sm text-center py-4">
@@ -137,14 +185,18 @@ export function ChatHistoryClient() {
           <div className="px-2 text-foreground/30 text-sm text-center py-4">
             الرجاء تسجيل الدخول لعرض السجل.
           </div>
+        ) : userId && debouncedSearchTerm.trim() && filteredChats.length === 0 ? (
+          <div className="px-2 text-foreground/30 text-sm text-center py-4">
+            لم يتم العثور على محادثات
+          </div>
         ) : (
           <SidebarMenu>
-            {userId && chats.map(
+            {userId && filteredChats.map(
               (chat: Chat) => chat && <ChatMenuItem key={chat.id} chat={chat} />
             )}
           </SidebarMenu>
         )}
-        {userId && <div ref={loadMoreRef} style={{ height: '1px' }} />}
+        {userId && !debouncedSearchTerm.trim() && <div ref={loadMoreRef} style={{ height: '1px' }} />}
         {(isLoading || isPending) && userId && (
           <div className="py-2">
             <ChatHistorySkeleton />
