@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import AppSidebar from '@/components/app-sidebar';
 import ArtifactRoot from '@/components/artifact/artifact-root';
 import Header from '@/components/header';
+import { SessionInitializer } from '@/components/session-initializer';
 import { ThemeProvider } from '@/components/theme-provider';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
@@ -70,6 +71,7 @@ export default async function RootLayout({
           fontArabic.variable
         )}
       >
+        <SessionInitializer />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
