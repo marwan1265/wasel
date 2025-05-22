@@ -1,17 +1,15 @@
 'use client'
 
 import { useSidebar } from '@/components/ui/sidebar'
-import { cn } from '@/lib/utils'
-import { User } from '@supabase/supabase-js'
-// import Link from 'next/link' // No longer needed directly here for Sign In button
-import React from 'react'
-// import { Button } from './ui/button' // No longer needed directly here for Sign In button
 import { useUserTier } from '@/hooks/use-user-tier'
 import { CHAT_ID } from '@/lib/constants'
+import { cn } from '@/lib/utils'
 import { useChat } from '@ai-sdk/react'
+import { User } from '@supabase/supabase-js'
 import { MessageCirclePlus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import GuestMenu from './guest-menu'; // Import the new GuestMenu component
+import React from 'react'
+import GuestMenu from './guest-menu'
 import { Button } from './ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 import UserMenu from './user-menu'
@@ -24,7 +22,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
   const { open } = useSidebar()
   const router = useRouter()
   const { setMessages } = useChat({ id: CHAT_ID })
-  const { isGuest, isLoading } = useUserTier()
+  const { isGuest, isLoading, tier } = useUserTier()
 
   const handleNewChat = () => {
     setMessages([])
@@ -32,9 +30,19 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
     router.push('/')
   }
 
+  // Debug logging to see what values we're getting
+  console.log('Header Debug:', { 
+    hasUser: !!user, 
+    isGuest, 
+    isLoading, 
+    tier,
+    userId: user?.id 
+  })
+
   // Determine if we should show guest menu
   // Show guest menu if: no user at all OR user exists but is a guest tier
-  const shouldShowGuestMenu = !user || isGuest
+  // While loading, assume guest to prevent showing wrong menu initially
+  const shouldShowGuestMenu = !user || isGuest || (user && isLoading)
 
   return (
     <header
