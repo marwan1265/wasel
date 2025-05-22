@@ -139,18 +139,11 @@ export function ChatHistoryClient() {
 
   return (
     <div className="flex flex-col flex-1 h-full">
-      <SidebarGroup>
-        <div className="flex items-center justify-between w-full">
-          <SidebarGroupLabel className="p-0">السجل</SidebarGroupLabel>
-          <ClearHistoryAction empty={isHistoryEmpty} />
-        </div>
-      </SidebarGroup>
-      
       {/* Search Bar */}
       {userId && chats.length > 0 && (
-        <div className="px-2 pb-2">
+        <div className="px-2 pb-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <SidebarInput
               placeholder="بحث في المحادثات..."
               value={searchTerm}
@@ -160,12 +153,12 @@ export function ChatHistoryClient() {
                   setSearchTerm('')
                 }
               }}
-              className="pl-9 pr-9 text-right"
+              className="pr-10 pl-9 text-right rounded-xl border-muted-foreground/20 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-muted-foreground/40 transition-colors"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
                 type="button"
                 aria-label="مسح البحث"
               >
@@ -175,6 +168,13 @@ export function ChatHistoryClient() {
           </div>
         </div>
       )}
+      
+      <SidebarGroup>
+        <div className="flex items-center justify-between w-full">
+          <SidebarGroupLabel className="p-0">السجل</SidebarGroupLabel>
+          <ClearHistoryAction empty={isHistoryEmpty} />
+        </div>
+      </SidebarGroup>
       
       <div className="flex-1 overflow-y-auto mb-2 relative">
         {userId && isHistoryEmpty && !isPending ? (
