@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use server'
 
 import { createClient as createSupabaseClient } from '@/lib/supabase/server';
@@ -34,7 +33,7 @@ export async function getUserTier(userId: string): Promise<UserTier> {
     }
 
     // 2. If user is anonymous as per auth.users, they are 'guest'
-    if ((authUser as any).is_anonymous === true) {
+    if ((authUser as { is_anonymous?: boolean }).is_anonymous === true) {
       return 'guest';
     }
 

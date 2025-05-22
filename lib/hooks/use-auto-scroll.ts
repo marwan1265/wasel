@@ -1,9 +1,9 @@
 import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState
 } from 'react'
 
 interface UseAutoScrollOptions {
@@ -88,7 +88,7 @@ export function useAutoScroll({
     }
     // No window fallback, listener is only for the specified container
     return undefined
-  }, [handleScroll, scrollContainer, scrollContainer?.current]) // Re-run when .current changes
+  }, [handleScroll, scrollContainer]) // Re-run when scrollContainer ref changes
 
   // Setup intersection observer for auto re-enabling
   useEffect(() => {
