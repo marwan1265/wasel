@@ -1,4 +1,4 @@
-// @ts-nocheck
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use server'
 
 import { createClient as createSupabaseClient } from '@/lib/supabase/server';

@@ -71,7 +71,6 @@ export default async function RootLayout({
           fontArabic.variable
         )}
       >
-        <SessionInitializer />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -90,6 +89,7 @@ export default async function RootLayout({
             </SidebarProvider>
             <Toaster />
             <Analytics />
+            <SessionInitializer />
           </TooltipProvider>
         </ThemeProvider>
       </body>
