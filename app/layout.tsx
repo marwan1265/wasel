@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     title,
     description,
     card: 'summary_large_image',
-    creator: '@mwasel_chat'
+    creator: '@wasel_chat'
   }
 }
 
