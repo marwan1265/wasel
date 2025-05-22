@@ -21,12 +21,12 @@ const fontArabic = FontArabic({
   variable: '--font-sans'
 })
 
-const title = 'واصل'
+const title = 'Wasel | واصل'
 const description =
-  'محرك إجابات مدعوم بالذكاء الاصطناعي مفتوح المصدر بالكامل مع واجهة مستخدم توليدية.'
+  'محرك إجابات عربي مدعوم بالذكاء الاصطناعي.'
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://morphic.sh'),
+  metadataBase: new URL('https://wasel.chat'),
   title,
   description,
   openGraph: {
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     title,
     description,
     card: 'summary_large_image',
-    creator: '@miiura'
+    creator: '@mwasel_chat'
   }
 }
 
