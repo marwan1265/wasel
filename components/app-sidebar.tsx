@@ -3,15 +3,16 @@ import {
     SidebarContent,
     SidebarHeader,
     SidebarMenu,
+    SidebarMenuButton,
     SidebarMenuItem,
     SidebarRail
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
+import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { ChatHistorySection } from './sidebar/chat-history-section'
 import { ChatHistorySkeleton } from './sidebar/chat-history-skeleton'
-import { NewChatButton } from './sidebar/new-chat-button'
 import { IconLogo } from './ui/icons'
 import SidebarTrigger from './ui/sidebar-trigger'
 
@@ -28,7 +29,12 @@ export default function AppSidebar() {
       <SidebarContent className="flex flex-col px-2 py-4 h-full">
         <SidebarMenu>
           <SidebarMenuItem>
-            <NewChatButton />
+            <SidebarMenuButton asChild>
+              <Link href="/" className="flex items-center gap-2">
+                <Plus className="size-4" />
+                <span>محادثة جديدة</span>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
         <div className="flex-1 overflow-y-auto">
