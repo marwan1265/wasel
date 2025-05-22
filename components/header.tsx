@@ -22,22 +22,13 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
   const { open } = useSidebar()
   const router = useRouter()
   const { setMessages } = useChat({ id: CHAT_ID })
-  const { isGuest, isLoading, tier } = useUserTier()
+  const { isGuest, isLoading } = useUserTier()
 
   const handleNewChat = () => {
     setMessages([])
     // We don't have access to closeArtifact() here
     router.push('/')
   }
-
-  // Debug logging to see what values we're getting
-  console.log('Header Debug:', { 
-    hasUser: !!user, 
-    isGuest, 
-    isLoading, 
-    tier,
-    userId: user?.id 
-  })
 
   // Determine if we should show guest menu
   // Show guest menu if: no user at all OR user exists but is a guest tier
