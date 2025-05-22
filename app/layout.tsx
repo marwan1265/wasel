@@ -7,6 +7,8 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { getCurrentUserId } from '@/lib/auth/get-current-user';
+import { getUserTier } from '@/lib/auth/user-tier';
 import { createClient } from '@/lib/supabase/server';
 import { cn } from '@/lib/utils';
 import { Analytics } from '@vercel/analytics/next';
@@ -63,6 +65,11 @@ export default async function RootLayout({
     user = supabaseUser
   }
 
+  // Check if user is a guest using the getUserTier function
+  const userId = await getCurrentUserId()
+  const userTier = await getUserTier(userId)
+  const isGuestUser = userTier === 'guest' || userTier === 'unknown'
+
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body
@@ -78,8 +85,8 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <TooltipProvider>
-            <SidebarProvider defaultOpen>
-              <AppSidebar />
+            <SidebarProvider defaultOpen={!isGuestUser}>
+              {!isGuestUser && <AppSidebar />}
               <div className="flex flex-col flex-1">
                 <Header user={user} />
                 <main className="flex flex-1 min-h-0">
