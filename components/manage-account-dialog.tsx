@@ -1,5 +1,16 @@
 'use client'
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger
+} from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -7,13 +18,15 @@ import {
     DialogPortal,
     DialogTrigger
 } from '@/components/ui/dialog'
+import { deleteUserAccount } from '@/lib/actions/user'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { User } from '@supabase/supabase-js'
-import { LogOut, User as UserIcon, X } from 'lucide-react'
+import { Key, LogOut, Trash2, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 interface ManageAccountDialogProps {
   user: User
@@ -49,6 +62,33 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
     setOpen(false)
     router.push('/')
     router.refresh()
+  }
+
+  const handlePasswordReset = () => {
+    setOpen(false)
+    router.push('/auth/update-password')
+  }
+
+  const handleDeleteAccount = async () => {
+    try {
+      const result = await deleteUserAccount()
+      
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+      
+      // Sign out after successful deletion
+      const supabase = createClient()
+      await supabase.auth.signOut()
+      setOpen(false)
+      toast.success('تم حذف بيانات الحساب بنجاح')
+      router.push('/')
+      router.refresh()
+    } catch (error) {
+      console.error('Error deleting account:', error)
+      toast.error('فشل في حذف الحساب. يرجى المحاولة مرة أخرى.')
+    }
   }
 
   return (
@@ -88,32 +128,56 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
 
               {/* Account Management Options */}
               <div className="space-y-2">
-                <div className="px-3 py-3 rounded-lg hover:bg-accent/20 cursor-pointer transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3 space-x-reverse">
-                      <UserIcon className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">تحديث الملف الشخصي</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">←</span>
-                  </div>
-                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-between rounded-full px-4 py-3 h-auto hover:bg-accent/20"
+                    >
+                      <div className="flex items-center space-x-3 space-x-reverse">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                        <span className="text-sm font-medium">حذف الحساب</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">←</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="rounded-2xl">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>تأكيد حذف الحساب</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        هذا الإجراء غير قابل للإلغاء. سيتم حذف حسابك وجميع بياناتك نهائياً. هل أنت متأكد من أنك تريد المتابعة؟
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleDeleteAccount}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        حذف الحساب
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 
-                <div className="px-3 py-3 rounded-lg hover:bg-accent/20 cursor-pointer transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3 space-x-reverse">
-                      <UserIcon className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">تغيير كلمة المرور</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">←</span>
+                <Button 
+                  onClick={handlePasswordReset}
+                  variant="ghost" 
+                  className="w-full justify-between rounded-full px-4 py-3 h-auto hover:bg-accent/20"
+                >
+                  <div className="flex items-center space-x-3 space-x-reverse">
+                    <Key className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">تغيير كلمة المرور</span>
                   </div>
-                </div>
+                  <span className="text-xs text-muted-foreground">←</span>
+                </Button>
               </div>
 
               {/* Logout Button */}
               <div className="pt-4">
                 <Button 
                   onClick={handleLogout}
-                  className="w-full rounded-full bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                  className="w-full rounded-full bg-destructive hover:bg-destructive/90 text-destructive-foreground focus:ring-0 focus:ring-offset-0 border-0"
                   size="sm"
                 >
                   <LogOut className="ml-2 h-4 w-4" />
