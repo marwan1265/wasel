@@ -2,22 +2,23 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
-import { Link2, LogOut, Palette } from 'lucide-react'
+import { Link2, LogOut, Palette, Settings, User as UserIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { ExternalLinkItems } from './external-link-items'
+import { ManageAccountDialog } from './manage-account-dialog'
 import { ThemeMenuItems } from './theme-menu-items'
 import { Button } from './ui/button'
 
@@ -82,6 +83,26 @@ export default function UserMenu({ user }: UserMenuProps) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        
+        {/* Settings Button */}
+        <ManageAccountDialog user={user}>
+          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+            <Settings className="ml-3 mr-4 h-4 w-4" />
+            <span>الإعدادات</span>
+          </DropdownMenuItem>
+        </ManageAccountDialog>
+        
+        {/* Manage Account Button */}
+        <ManageAccountDialog user={user}>
+          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+            <UserIcon className="ml-3 mr-4 h-4 w-4" />
+            <span>إدارة الحساب</span>
+          </DropdownMenuItem>
+        </ManageAccountDialog>
+        
+        <DropdownMenuSeparator />
+        
+        {/* Theme options (back to nested) */}
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <Palette className="ml-3 mr-4 h-4 w-4" />
@@ -91,6 +112,7 @@ export default function UserMenu({ user }: UserMenuProps) {
             <ThemeMenuItems />
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+        
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <Link2 className="ml-3 mr-4 h-4 w-4" />
