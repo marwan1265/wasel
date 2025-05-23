@@ -10,9 +10,8 @@ import {
 import { cn } from '@/lib/utils'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { User } from '@supabase/supabase-js'
-import { Palette, Settings, User as UserIcon, X } from 'lucide-react'
+import { User as UserIcon, X } from 'lucide-react'
 import { useState } from 'react'
-import { ThemeMenuItems } from './theme-menu-items'
 
 interface ManageAccountDialogProps {
   user: User
@@ -60,12 +59,12 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
           <div className="p-6">
             {/* Header */}
             <div className="text-center mb-6">
-              <h2 className="text-lg font-semibold mb-1">الإعدادات</h2>
+              <h2 className="text-lg font-semibold mb-1">إدارة الحساب</h2>
             </div>
 
             {/* Account Section */}
             <div className="space-y-4">
-              <div className="flex items-center space-x-3 space-x-reverse p-3 rounded-lg bg-accent/20">
+              <div className="flex items-center space-x-3 space-x-reverse p-4 rounded-lg bg-accent/20">
                 <Avatar className="h-12 w-12">
                   <AvatarImage src={avatarUrl} alt={userName} />
                   <AvatarFallback>{getInitials(userName, user.email)}</AvatarFallback>
@@ -75,43 +74,29 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
                   <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                 </div>
                 <Button variant="outline" size="sm" className="shrink-0">
-                  إدارة
+                  تحرير
                 </Button>
               </div>
 
-              {/* Settings Menu Items */}
-              <div className="space-y-1">
-                <div className="px-3 py-2">
-                  <div className="flex items-center space-x-3 space-x-reverse">
-                    <UserIcon className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">الحساب</span>
-                  </div>
-                </div>
-
-                <div className="px-3 py-2">
+              {/* Account Management Options */}
+              <div className="space-y-2">
+                <div className="px-3 py-3 rounded-lg hover:bg-accent/20 cursor-pointer transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3 space-x-reverse">
-                      <Palette className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">السمة</span>
+                      <UserIcon className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">تحديث الملف الشخصي</span>
                     </div>
-                  </div>
-                  <div className="mt-2 mr-7 space-y-1">
-                    <ThemeMenuItems />
+                    <span className="text-xs text-muted-foreground">←</span>
                   </div>
                 </div>
-
-                <div className="px-3 py-2">
-                  <div className="flex items-center space-x-3 space-x-reverse">
-                    <Settings className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">إعدادات اللغة</span>
-                  </div>
-                  <div className="mt-2 mr-7">
-                    <div className="flex items-center justify-between py-1">
-                      <span className="text-sm text-muted-foreground">العربية</span>
-                      <Button variant="ghost" size="sm" className="h-6 text-xs">
-                        تغيير
-                      </Button>
+                
+                <div className="px-3 py-3 rounded-lg hover:bg-accent/20 cursor-pointer transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3 space-x-reverse">
+                      <UserIcon className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">تغيير كلمة المرور</span>
                     </div>
+                    <span className="text-xs text-muted-foreground">←</span>
                   </div>
                 </div>
               </div>

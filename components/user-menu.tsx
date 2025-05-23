@@ -15,7 +15,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
-import { Link2, LogOut, Palette, Settings, User as UserIcon } from 'lucide-react'
+import { Link2, LogOut, Palette, User as UserIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { ExternalLinkItems } from './external-link-items'
 import { ManageAccountDialog } from './manage-account-dialog'
@@ -84,14 +84,6 @@ export default function UserMenu({ user }: UserMenuProps) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         
-        {/* Settings Button */}
-        <ManageAccountDialog user={user}>
-          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-            <Settings className="ml-3 mr-4 h-4 w-4" />
-            <span>الإعدادات</span>
-          </DropdownMenuItem>
-        </ManageAccountDialog>
-        
         {/* Manage Account Button */}
         <ManageAccountDialog user={user}>
           <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
@@ -106,7 +98,7 @@ export default function UserMenu({ user }: UserMenuProps) {
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <Palette className="ml-3 mr-4 h-4 w-4" />
-            <span>السمة</span>
+            <span>المظهر</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <ThemeMenuItems />
