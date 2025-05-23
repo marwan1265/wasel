@@ -7,10 +7,12 @@ import {
     DialogPortal,
     DialogTrigger
 } from '@/components/ui/dialog'
+import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { User } from '@supabase/supabase-js'
-import { User as UserIcon, X } from 'lucide-react'
+import { LogOut, User as UserIcon, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 interface ManageAccountDialogProps {
@@ -20,6 +22,7 @@ interface ManageAccountDialogProps {
 
 export function ManageAccountDialog({ user, children }: ManageAccountDialogProps) {
   const [open, setOpen] = useState(false)
+  const router = useRouter()
   
   const userName =
     user.user_metadata?.full_name || user.user_metadata?.name || 'مستخدم'
@@ -38,6 +41,14 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
       return email.split('@')[0].substring(0, 2).toUpperCase()
     }
     return 'م'
+  }
+
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    setOpen(false)
+    router.push('/')
+    router.refresh()
   }
 
   return (
@@ -73,9 +84,6 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
                   <p className="text-sm font-medium truncate">{userName}</p>
                   <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                 </div>
-                <Button variant="outline" size="sm" className="shrink-0">
-                  تحرير
-                </Button>
               </div>
 
               {/* Account Management Options */}
@@ -99,6 +107,18 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
                     <span className="text-xs text-muted-foreground">←</span>
                   </div>
                 </div>
+              </div>
+
+              {/* Logout Button */}
+              <div className="pt-4">
+                <Button 
+                  onClick={handleLogout}
+                  className="w-full rounded-full bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                  size="sm"
+                >
+                  <LogOut className="ml-2 h-4 w-4" />
+                  تسجيل الخروج
+                </Button>
               </div>
             </div>
           </div>
