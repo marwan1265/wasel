@@ -23,7 +23,7 @@ import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { User } from '@supabase/supabase-js'
-import { Key, LogOut, Trash2, X } from 'lucide-react'
+import { LogOut, RotateCcw, Trash2, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -127,50 +127,64 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
               </div>
 
               {/* Account Management Options */}
-              <div className="space-y-2">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      className="w-full justify-between rounded-full px-4 py-3 h-auto hover:bg-accent/20"
-                    >
-                      <div className="flex items-center space-x-3 space-x-reverse">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                        <span className="text-sm font-medium">حذف الحساب</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">←</span>
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent className="rounded-2xl">
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>تأكيد حذف الحساب</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        هذا الإجراء غير قابل للإلغاء. سيتم حذف حسابك وجميع بياناتك نهائياً. هل أنت متأكد من أنك تريد المتابعة؟
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={handleDeleteAccount}
-                        className="bg-destructive hover:bg-destructive/90"
-                      >
-                        حذف الحساب
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                
-                <Button 
-                  onClick={handlePasswordReset}
-                  variant="ghost" 
-                  className="w-full justify-between rounded-full px-4 py-3 h-auto hover:bg-accent/20"
-                >
+              <div className="space-y-3">
+                {/* Delete Account Option */}
+                <div className="flex items-center justify-between p-3 rounded-lg">
                   <div className="flex items-center space-x-3 space-x-reverse">
-                    <Key className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">تغيير كلمة المرور</span>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                    <div>
+                      <span className="text-sm font-medium">حذف الحساب</span>
+                      <p className="text-xs text-muted-foreground">حذف الحساب وجميع البيانات المرتبطة به نهائياً</p>
+                    </div>
                   </div>
-                  <span className="text-xs text-muted-foreground">←</span>
-                </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="rounded-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        size="sm"
+                      >
+                        حذف
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="rounded-2xl">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>تأكيد حذف الحساب</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          هذا الإجراء غير قابل للإلغاء. سيتم حذف حسابك وجميع بياناتك نهائياً. هل أنت متأكد من أنك تريد المتابعة؟
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={handleDeleteAccount}
+                          className="bg-destructive hover:bg-destructive/90"
+                        >
+                          حذف الحساب
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+                
+                {/* Change Password Option */}
+                <div className="flex items-center justify-between p-3 rounded-lg">
+                  <div className="flex items-center space-x-3 space-x-reverse">
+                    <RotateCcw className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <span className="text-sm font-medium">تغيير كلمة المرور</span>
+                      <p className="text-xs text-muted-foreground">تحديث كلمة المرور الخاصة بحسابك</p>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handlePasswordReset}
+                    variant="outline" 
+                    className="rounded-full"
+                    size="sm"
+                  >
+                    تغيير
+                  </Button>
+                </div>
               </div>
 
               {/* Logout Button */}
