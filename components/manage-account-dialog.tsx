@@ -1,22 +1,22 @@
 'use client'
 
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
-    Dialog,
-    DialogPortal,
-    DialogTrigger
+  Dialog,
+  DialogPortal,
+  DialogTrigger
 } from '@/components/ui/dialog'
 import { deleteUserAccount } from '@/lib/actions/user'
 import { createClient } from '@/lib/supabase/client'
@@ -128,6 +128,25 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
 
               {/* Account Management Options */}
               <div className="space-y-3">
+                {/* Change Password Option */}
+                <div className="flex items-center justify-between p-3 rounded-lg">
+                  <div className="flex items-center space-x-3 space-x-reverse">
+                    <RotateCcw className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <span className="text-sm font-medium">تغيير كلمة المرور</span>
+                      <p className="text-xs text-muted-foreground">تحديث كلمة المرور الخاصة بحسابك</p>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handlePasswordReset}
+                    variant="outline" 
+                    className="rounded-full"
+                    size="sm"
+                  >
+                    تغيير
+                  </Button>
+                </div>
+
                 {/* Delete Account Option */}
                 <div className="flex items-center justify-between p-3 rounded-lg">
                   <div className="flex items-center space-x-3 space-x-reverse">
@@ -141,7 +160,7 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
                     <AlertDialogTrigger asChild>
                       <Button 
                         variant="outline" 
-                        className="rounded-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        className="rounded-full border-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                         size="sm"
                       >
                         حذف
@@ -165,25 +184,6 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                </div>
-                
-                {/* Change Password Option */}
-                <div className="flex items-center justify-between p-3 rounded-lg">
-                  <div className="flex items-center space-x-3 space-x-reverse">
-                    <RotateCcw className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <span className="text-sm font-medium">تغيير كلمة المرور</span>
-                      <p className="text-xs text-muted-foreground">تحديث كلمة المرور الخاصة بحسابك</p>
-                    </div>
-                  </div>
-                  <Button 
-                    onClick={handlePasswordReset}
-                    variant="outline" 
-                    className="rounded-full"
-                    size="sm"
-                  >
-                    تغيير
-                  </Button>
                 </div>
               </div>
 

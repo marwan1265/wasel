@@ -1,7 +1,6 @@
 'use client'
 
 import { useSidebar } from '@/components/ui/sidebar'
-import { useUserTier } from '@/hooks/use-user-tier'
 import { CHAT_ID } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { useChat } from '@ai-sdk/react'
@@ -16,13 +15,13 @@ import UserMenu from './user-menu'
 
 interface HeaderProps {
   user: User | null
+  isGuestUser: boolean
 }
 
-export const Header: React.FC<HeaderProps> = ({ user }) => {
+export const Header: React.FC<HeaderProps> = ({ user, isGuestUser }) => {
   const { open } = useSidebar()
   const router = useRouter()
   const { setMessages } = useChat({ id: CHAT_ID })
-  const { isGuest, isLoading } = useUserTier()
 
   const handleNewChat = () => {
     setMessages([])
@@ -30,10 +29,8 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
     router.push('/')
   }
 
-  // Determine if we should show guest menu
-  // Show guest menu if: no user at all OR user exists but is a guest tier
-  // While loading, assume guest to prevent showing wrong menu initially
-  const shouldShowGuestMenu = !user || isGuest || (user && isLoading)
+  // Use server-side guest determination to eliminate flickering
+  const shouldShowGuestMenu = !user || isGuestUser
 
   return (
     <header

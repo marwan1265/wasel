@@ -88,7 +88,7 @@ export default async function RootLayout({
             <SidebarProvider defaultOpen={!isGuestUser}>
               {!isGuestUser && <AppSidebar />}
               <div className="flex flex-col flex-1">
-                <Header user={user} />
+                <Header user={user} isGuestUser={isGuestUser} />
                 <main className="flex flex-1 min-h-0">
                   <ArtifactRoot>{children}</ArtifactRoot>
                 </main>
