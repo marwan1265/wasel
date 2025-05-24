@@ -159,8 +159,8 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button 
-                        variant="outline" 
-                        className="rounded-full border-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        variant="ghost" 
+                        className="rounded-full border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                         size="sm"
                       >
                         حذف
