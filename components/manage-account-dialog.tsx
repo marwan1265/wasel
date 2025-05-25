@@ -139,9 +139,9 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
                   </div>
                   <Button 
                     onClick={handlePasswordReset}
-                    variant="outline" 
-                    className="rounded-full focus:ring-0 focus:ring-offset-0"
-                    size="sm"
+                    variant="ghost" 
+                    className="rounded-full border border-border text-foreground hover:bg-accent hover:text-accent-foreground focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-2"
+                    size="default"
                   >
                     تغيير
                   </Button>
@@ -160,8 +160,8 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
                     <AlertDialogTrigger asChild>
                       <Button 
                         variant="ghost" 
-                        className="rounded-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground focus:ring-0 focus:ring-offset-0"
-                        size="sm"
+                        className="rounded-full border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-2"
+                        size="default"
                       >
                         حذف
                       </Button>
