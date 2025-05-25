@@ -8,7 +8,7 @@ import { useChat } from '@ai-sdk/react'
 import { ChatRequestOptions } from 'ai'
 import { Message } from 'ai/react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useTransition } from 'react'
+import { useCallback, useEffect, useRef, useTransition } from 'react'
 import { toast } from 'sonner'
 import { ChatMessages } from './chat-messages'
 import { ChatPanel } from './chat-panel'
@@ -27,12 +27,13 @@ export function Chat({
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const updateTimeoutRef = useRef<NodeJS.Timeout>()
 
   const {
     messages,
     input,
     handleInputChange,
-    handleSubmit,
+    handleSubmit: originalHandleSubmit,
     status,
     setMessages,
     stop,
@@ -48,8 +49,8 @@ export function Chat({
       id
     },
     onFinish: () => {
-      window.history.replaceState({}, '', `/search/${id}`)
-      window.dispatchEvent(new CustomEvent('chat-history-updated'))
+      // No longer handle URL change and history update here
+      // This will still fire when the AI response completes
     },
     onError: error => {
       toast.error(`Error in chat: ${error.message}`)
@@ -76,11 +77,58 @@ export function Chat({
     setMessages(savedMessages)
   }, [id])
 
+  // Debounced function to handle URL change and history update
+  const handleUrlAndHistoryUpdate = useCallback(() => {
+    // Clear any existing timeout
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current)
+    }
+
+    // Delay the update slightly to allow API request to start
+    updateTimeoutRef.current = setTimeout(() => {
+      const currentPath = window.location.pathname
+      if (currentPath !== `/search/${id}`) {
+        window.history.replaceState({}, '', `/search/${id}`)
+      }
+      
+      // Dispatch the event
+      window.dispatchEvent(new CustomEvent('chat-history-updated'))
+    }, 100) // 100ms delay to ensure API request has started
+  }, [id])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current)
+      }
+    }
+  }, [])
+
   const onQuerySelect = (query: string) => {
     append({
       role: 'user',
       content: query
     })
+    handleUrlAndHistoryUpdate()
+  }
+
+  // Wrapped append function that also handles URL and history updates
+  const appendWithUrlUpdate = (message: any) => {
+    append(message)
+    handleUrlAndHistoryUpdate()
+  }
+
+  // Custom submit handler that changes URL and updates history immediately
+  const handleSubmit = (
+    event?: React.FormEvent<HTMLFormElement>,
+    options?: ChatRequestOptions
+  ) => {
+    // First, call the original submit handler to start the chat
+    originalHandleSubmit(event, options)
+    
+    // Handle URL and history update with slight delay
+    handleUrlAndHistoryUpdate()
   }
 
   const handleUpdateAndReloadMessage = async (
@@ -168,7 +216,7 @@ export function Chat({
         setMessages={setMessages}
         stop={stop}
         query={query}
-        append={append}
+        append={appendWithUrlUpdate}
         models={models}
         isAutoScroll={isAutoScroll}
       />
