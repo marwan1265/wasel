@@ -34,7 +34,7 @@ export function ChatHistoryClient() {
   const [isPending, startTransition] = useTransition()
 
   const fetchInitialChats = useCallback(async () => {
-    console.log('[ChatHistory] fetchInitialChats called, userId:', userId)
+    console.log('[Sidebar] fetchInitialChats called, userId:', userId)
     if (!userId) {
       setChats([])
       setNextOffset(null)
@@ -43,7 +43,7 @@ export function ChatHistoryClient() {
     }
     setIsLoading(true)
     try {
-      console.log('[ChatHistory] Fetching chats from API...')
+      console.log('[Sidebar] Fetching chats from /api/chats')
       const response = await fetch(`/api/chats?offset=0&limit=20`)
       if (!response.ok) {
         throw new Error('Failed to fetch initial chat history')
@@ -51,7 +51,7 @@ export function ChatHistoryClient() {
       const { chats: newChats, nextOffset: newNextOffset } =
         (await response.json()) as ChatPageResponse
 
-      console.log('[ChatHistory] Received chats:', newChats.length, 'chats')
+      console.log('[Sidebar] Received chats:', newChats.length, 'chats')
       setChats(newChats)
       setNextOffset(newNextOffset)
     } catch (error) {
@@ -70,14 +70,14 @@ export function ChatHistoryClient() {
 
   useEffect(() => {
     const handleHistoryUpdate = () => {
-      console.log('[ChatHistory] Received chat-history-updated event, userId:', userId)
+      console.log('[Sidebar] Received chat-history-updated event, userId:', userId)
       if (userId) {
-        console.log('[ChatHistory] Starting transition to fetch chats')
+        console.log('[Sidebar] Starting transition to fetch initial chats')
         startTransition(() => {
           fetchInitialChats()
         })
       } else {
-        console.log('[ChatHistory] No userId, skipping fetch')
+        console.log('[Sidebar] No userId, skipping fetch')
       }
     }
     window.addEventListener('chat-history-updated', handleHistoryUpdate)
