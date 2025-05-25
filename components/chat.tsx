@@ -96,7 +96,7 @@ export function Chat({
     updateTimeoutRef.current = setTimeout(() => {
       console.log('[Chat] Dispatching delayed chat-history-updated event for chatId:', id)
       window.dispatchEvent(new CustomEvent('chat-history-updated'))
-    }, 1000) // 1 second delay to ensure early save definitely completes
+    }, 200) // Reduced delay since sidebar now has fallback mechanism
   }, [id])
 
   const handleUrlAndHistoryUpdate = useCallback(() => {

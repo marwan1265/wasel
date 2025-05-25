@@ -68,6 +68,14 @@ export function ChatHistoryClient() {
     fetchInitialChats()
   }, [fetchInitialChats, userId])
 
+  // Auto-refetch when userId becomes available (handles delayed authentication)
+  useEffect(() => {
+    if (userId) {
+      console.log('[Sidebar] UserId became available, fetching chats:', userId)
+      fetchInitialChats()
+    }
+  }, [userId, fetchInitialChats])
+
   useEffect(() => {
     const handleHistoryUpdate = () => {
       console.log('[Sidebar] Received chat-history-updated event, userId:', userId)
