@@ -140,7 +140,7 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
                   <Button 
                     onClick={handlePasswordReset}
                     variant="ghost" 
-                    className="rounded-full border border-border text-foreground hover:bg-accent hover:text-accent-foreground focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-9 w-[70px] px-4"
+                    className="rounded-full border border-border text-foreground hover:bg-accent hover:text-accent-foreground focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-9 w-[60px] px-4"
                     size="default"
                   >
                     تغيير
@@ -153,14 +153,14 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
                     <Trash2 className="h-4 w-4 text-destructive" />
                     <div>
                       <span className="text-sm font-medium">حذف الحساب</span>
-                      <p className="text-xs text-muted-foreground">حذف الحساب وجميع البيانات المرتبطة به نهائياً</p>
+                      <p className="text-xs text-muted-foreground">حذف الحساب وجميع البيانات<br />المرتبطة به نهائياً</p>
                     </div>
                   </div>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button 
                         variant="ghost" 
-                        className="rounded-full border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-9 w-[70px] px-4"
+                        className="rounded-full border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-9 w-[60px] px-4"
                         size="default"
                       >
                         حذف
