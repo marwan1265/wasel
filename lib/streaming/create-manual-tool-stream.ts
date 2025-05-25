@@ -100,6 +100,7 @@ export function createManualToolStreamResponse(config: BaseStreamConfig) {
         })
       } catch (error) {
         console.error('Stream execution error:', error)
+        throw error
       }
     },
     onError: error => {

@@ -4,7 +4,9 @@ import { getUserTier } from '@/lib/auth/user-tier'
 import { getRedisClient, RedisWrapper } from '@/lib/redis/config'
 import { createClient as createSupabaseClient } from '@/lib/supabase/server'
 import { type Chat, ExtendedCoreMessage } from '@/lib/types'
+import { convertToExtendedCoreMessages } from '@/lib/utils'
 import { CoreMessage, JSONValue } from 'ai'
+import { Message } from 'ai/react'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -486,6 +488,46 @@ export async function deleteChat(
   }
 }
 
+export async function saveUserMessage(
+  chatId: string,
+  messages: Message[],
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Extract only user messages from the conversation
+    const userMessages = messages.filter(msg => msg.role === 'user')
+    if (userMessages.length === 0) {
+      return { success: false, error: 'No user messages to save' }
+    }
+
+    // Convert to ExtendedCoreMessage format
+    const extendedUserMessages = convertToExtendedCoreMessages(userMessages)
+    
+    // Create initial chat object with user messages only
+    const chatTitle = userMessages[0]?.content?.toString() || 'New Chat'
+    const initialChat: Chat = {
+      id: chatId,
+      title: chatTitle,
+      createdAt: new Date(),
+      userId: userId,
+      path: `/search/${chatId}`,
+      messages: extendedUserMessages
+    }
+
+    console.log('[saveUserMessage] Saving early chat for chatId:', chatId, 'with', userMessages.length, 'user messages')
+
+    // Save to database and cache
+    await saveChat(initialChat, userId)
+    
+    console.log('[saveUserMessage] Successfully saved early chat for chatId:', chatId)
+    return { success: true }
+  } catch (error) {
+    console.error('[saveUserMessage] Error saving user message:', error)
+    // Don't throw - let the streaming continue even if early save fails
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+  }
+}
+
 export async function saveChat(chat: Chat, userId: string) {
   try {
     const userTier = await getUserTier(userId)
@@ -514,33 +556,55 @@ export async function saveChat(chat: Chat, userId: string) {
         throw convError
       }
 
-      // Insert messages
+      // Handle messages with deduplication
       if (chat.messages && chat.messages.length > 0) {
-        const messagesToInsert = chat.messages.map(message => {
-          const messageContent = typeof message.content === 'string' ? message.content : JSON.stringify(message.content)
-          
-          let tokens = 0; // Default to 0
-          if ('tokens' in message && typeof message.tokens === 'number') {
-              tokens = message.tokens;
-          }
+        // First, get existing messages to avoid duplicates
+        const { data: existingMessages } = await supabase
+          .from('messages')
+          .select('role, content, created_at')
+          .eq('conversation_id', chat.id)
+          .order('created_at', { ascending: true })
 
-          return {
-            conversation_id: chat.id,
-            user_id: userId,
-            role: message.role,
-            content: messageContent,
-            tokens: tokens,
-            created_at: new Date().toISOString()
-          }
+        const existingMessageContents = new Set(
+          (existingMessages || []).map(msg => `${msg.role}:${msg.content}`)
+        )
+
+        // Filter out messages that already exist
+        const newMessages = chat.messages.filter(message => {
+          const messageContent = typeof message.content === 'string' ? message.content : JSON.stringify(message.content)
+          const messageKey = `${message.role}:${messageContent}`
+          return !existingMessageContents.has(messageKey)
         })
 
-        const { error: msgError } = await supabase
-          .from('messages')
-          .insert(messagesToInsert)
+        console.log('[saveChat] Found', existingMessages?.length || 0, 'existing messages,', newMessages.length, 'new messages to save')
 
-        if (msgError) {
-          console.error('Supabase error saving messages:', msgError)
-          throw msgError
+        if (newMessages.length > 0) {
+          const messagesToInsert = newMessages.map((message, index) => {
+            const messageContent = typeof message.content === 'string' ? message.content : JSON.stringify(message.content)
+            
+            let tokens = 0; // Default to 0
+            if ('tokens' in message && typeof message.tokens === 'number') {
+                tokens = message.tokens;
+            }
+
+            return {
+              conversation_id: chat.id,
+              user_id: userId,
+              role: message.role,
+              content: messageContent,
+              tokens: tokens,
+              created_at: new Date(Date.now() + index).toISOString() // Add small offset to ensure ordering
+            }
+          })
+
+          const { error: msgError } = await supabase
+            .from('messages')
+            .insert(messagesToInsert)
+
+          if (msgError) {
+            console.error('Supabase error saving messages:', msgError)
+            throw msgError
+          }
         }
       }
     } // End of Supabase persistence block for non-guest users

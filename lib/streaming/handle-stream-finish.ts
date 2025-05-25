@@ -1,6 +1,6 @@
 import { getChat, saveChat } from '@/lib/actions/chat'
 import { generateRelatedQuestions } from '@/lib/agents/generate-related-questions'
-import { ExtendedCoreMessage } from '@/lib/types'
+import { Chat, ExtendedCoreMessage } from '@/lib/types'
 import { convertToExtendedCoreMessages } from '@/lib/utils'
 import { CoreMessage, DataStreamWriter, JSONValue, Message } from 'ai'
 
@@ -58,7 +58,7 @@ export async function handleStreamFinish({
       allAnnotations.push(updatedRelatedQuestionsAnnotation)
     }
 
-    // Create the message to save
+    // Create the complete message set to save
     const generatedMessages = [
       ...extendedCoreMessages,
       ...responseMessages.slice(0, -1),
@@ -70,29 +70,45 @@ export async function handleStreamFinish({
       return
     }
 
-    // Get the chat from the database if it exists, otherwise create a new one
-    const savedChat = (await getChat(chatId, userId)) ?? {
-      messages: [],
-      createdAt: new Date(),
-      userId: userId,
-      path: `/search/${chatId}`,
-      title: originalMessages[0].content,
-      id: chatId
+    console.log('[handleStreamFinish] Starting final chat save for chatId:', chatId)
+
+    // Get the existing chat (which might have been created by early save) or create a new one
+    let savedChat = await getChat(chatId, userId)
+    
+    if (!savedChat) {
+      console.log('[handleStreamFinish] No existing chat found, creating new one for chatId:', chatId)
+      // Fallback: create new chat if early save failed
+      savedChat = {
+        messages: [],
+        createdAt: new Date(),
+        userId: userId,
+        path: `/search/${chatId}`,
+        title: originalMessages[0]?.content?.toString() || 'New Chat',
+        id: chatId
+      }
+    } else {
+      console.log('[handleStreamFinish] Found existing chat for chatId:', chatId, 'with', savedChat.messages.length, 'existing messages')
     }
 
-    // Save chat with complete response and related questions
-    await saveChat(
-      {
-        ...savedChat,
-        messages: generatedMessages
-      },
-      userId
-    ).catch(error => {
-      console.error('Failed to save chat:', error)
+    // Create the final chat with complete conversation
+    const finalChat: Chat = {
+      ...savedChat,
+      messages: generatedMessages,
+      // Update title if it's still default and we have a better one
+      title: savedChat.title === 'New Chat' && originalMessages[0]?.content 
+        ? originalMessages[0].content.toString() 
+        : savedChat.title
+    }
+
+    // Save complete chat with all messages (deduplication handled in saveChat)
+    await saveChat(finalChat, userId).catch(error => {
+      console.error('[handleStreamFinish] Failed to save final chat:', error)
       throw new Error('Failed to save chat history')
     })
+
+    console.log('[handleStreamFinish] Successfully completed final save for chatId:', chatId)
   } catch (error) {
-    console.error('Error in handleStreamFinish:', error)
+    console.error('[handleStreamFinish] Error in handleStreamFinish:', error)
     throw error
   }
 }

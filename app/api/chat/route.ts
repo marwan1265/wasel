@@ -1,3 +1,4 @@
+import { saveUserMessage } from '@/lib/actions/chat'
 import { getCurrentUserId } from '@/lib/auth/get-current-user'
 import { createManualToolStreamResponse } from '@/lib/streaming/create-manual-tool-stream'
 import { createToolCallingStreamResponse } from '@/lib/streaming/create-tool-calling-stream'
@@ -28,6 +29,22 @@ export async function POST(req: Request) {
         status: 403,
         statusText: 'Forbidden'
       })
+    }
+
+    // Early chat saving - save user messages immediately
+    if (process.env.ENABLE_SAVE_CHAT_HISTORY === 'true' && messages && messages.length > 0) {
+      console.log('[API] Attempting early save for chatId:', chatId)
+      try {
+        const result = await saveUserMessage(chatId, messages, userId)
+        if (result.success) {
+          console.log('[API] Early save successful for chatId:', chatId)
+        } else {
+          console.warn('[API] Early save failed for chatId:', chatId, 'Error:', result.error)
+        }
+      } catch (error) {
+        console.error('[API] Early save error for chatId:', chatId, 'Error:', error)
+        // Continue with streaming even if early save fails
+      }
     }
 
     const cookieStore = await cookies()
