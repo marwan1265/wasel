@@ -1,10 +1,10 @@
 'use client'
 
 import {
-    SidebarGroup,
-    SidebarGroupLabel,
-    SidebarInput,
-    SidebarMenu
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarInput,
+  SidebarMenu
 } from '@/components/ui/sidebar'
 import { useCurrentUserId } from '@/hooks/use-current-user-id'
 import { useDebounce } from '@/hooks/use-debounce'
@@ -32,6 +32,7 @@ export function ChatHistoryClient() {
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const [isPending, startTransition] = useTransition()
+  const fetchTimeoutRef = useRef<NodeJS.Timeout>()
 
   const fetchInitialChats = useCallback(async () => {
     console.log('[Sidebar] fetchInitialChats called, userId:', userId)
@@ -52,8 +53,10 @@ export function ChatHistoryClient() {
         (await response.json()) as ChatPageResponse
 
       console.log('[Sidebar] Received chats:', newChats.length, 'chats')
+      console.log('[Sidebar] Setting chats state to:', newChats.map(c => c.title).slice(0, 3))
       setChats(newChats)
       setNextOffset(newNextOffset)
+      console.log('[Sidebar] State update calls completed')
     } catch (error) {
       console.error('Failed to load initial chats:', error)
       toast.error('Failed to load chat history.')
@@ -64,6 +67,16 @@ export function ChatHistoryClient() {
     }
   }, [userId])
 
+  // Debounced version to prevent rapid successive calls
+  const debouncedFetchInitialChats = useCallback(() => {
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current)
+    }
+    fetchTimeoutRef.current = setTimeout(() => {
+      fetchInitialChats()
+    }, 100)
+  }, [fetchInitialChats])
+
   useEffect(() => {
     fetchInitialChats()
   }, [fetchInitialChats, userId])
@@ -72,18 +85,16 @@ export function ChatHistoryClient() {
   useEffect(() => {
     if (userId) {
       console.log('[Sidebar] UserId became available, fetching chats:', userId)
-      fetchInitialChats()
+      debouncedFetchInitialChats()
     }
-  }, [userId, fetchInitialChats])
+  }, [userId, debouncedFetchInitialChats])
 
   useEffect(() => {
     const handleHistoryUpdate = () => {
       console.log('[Sidebar] Received chat-history-updated event, userId:', userId)
       if (userId) {
-        console.log('[Sidebar] Starting transition to fetch initial chats')
-        startTransition(() => {
-          fetchInitialChats()
-        })
+        console.log('[Sidebar] Calling debounced fetchInitialChats')
+        debouncedFetchInitialChats()
       } else {
         console.log('[Sidebar] No userId, skipping fetch')
       }
@@ -92,7 +103,7 @@ export function ChatHistoryClient() {
     return () => {
       window.removeEventListener('chat-history-updated', handleHistoryUpdate)
     }
-  }, [fetchInitialChats, userId])
+  }, [debouncedFetchInitialChats, userId])
 
   const fetchMoreChats = useCallback(async () => {
     if (isLoading || nextOffset === null || !userId) return
@@ -151,6 +162,11 @@ export function ChatHistoryClient() {
   }, [chats, debouncedSearchTerm])
 
   const isHistoryEmpty = !isLoading && !chats.length && nextOffset === null
+
+  // Debug: Log when chats state changes
+  useEffect(() => {
+    console.log('[Sidebar] Chats state updated, length:', chats.length, 'chats:', chats.map(c => c.title).slice(0, 3))
+  }, [chats])
 
   return (
     <div className="flex flex-col flex-1 h-full">
