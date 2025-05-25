@@ -77,6 +77,16 @@ export function Chat({
     setMessages(savedMessages)
   }, [id])
 
+  // Cleanup timeouts when component unmounts or id changes
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current)
+        updateTimeoutRef.current = undefined
+      }
+    }
+  }, [id])
+
   // Debounced function to handle URL change and history update
   const handleUrlAndHistoryUpdate = useCallback(() => {
     // Clear any existing timeout
@@ -84,29 +94,33 @@ export function Chat({
       clearTimeout(updateTimeoutRef.current)
     }
 
-    // Delay the update to allow API request to complete
+    // Update URL immediately
     updateTimeoutRef.current = setTimeout(() => {
       const currentPath = window.location.pathname
       if (currentPath !== `/search/${id}`) {
         window.history.replaceState({}, '', `/search/${id}`)
         console.log('[Chat] URL changed to:', `/search/${id}`)
       }
-      
-      // Dispatch the event with a bit more delay to ensure early save completes
-      setTimeout(() => {
-        console.log('[Chat] Dispatching chat-history-updated event')
-        window.dispatchEvent(new CustomEvent('chat-history-updated'))
-      }, 200) // Additional delay for early save to complete
-    }, 100) // Initial delay to ensure API request has started
+    }, 100)
   }, [id])
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current)
-      }
+  // Separate function to trigger history update - called when we know the message is added
+  const triggerHistoryUpdate = useCallback(() => {
+    console.log('[Chat] Triggering history update with 1.5s delay')
+    
+    // Clear any existing timeout to prevent duplicates
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current)
     }
+    
+    updateTimeoutRef.current = setTimeout(() => {
+      try {
+        console.log('[Chat] Dispatching chat-history-updated event')
+        window.dispatchEvent(new CustomEvent('chat-history-updated'))
+      } catch (error) {
+        console.error('[Chat] Error dispatching history update:', error)
+      }
+    }, 1500) // Give early save enough time
   }, [])
 
   const onQuerySelect = (query: string) => {
@@ -115,12 +129,14 @@ export function Chat({
       content: query
     })
     handleUrlAndHistoryUpdate()
+    triggerHistoryUpdate()
   }
 
   // Wrapped append function that also handles URL and history updates
   const appendWithUrlUpdate = (message: any) => {
     append(message)
     handleUrlAndHistoryUpdate()
+    triggerHistoryUpdate()
   }
 
   // Custom submit handler that changes URL and updates history immediately
@@ -131,8 +147,9 @@ export function Chat({
     // First, call the original submit handler to start the chat
     originalHandleSubmit(event, options)
     
-    // Handle URL and history update with slight delay
+    // Handle URL change immediately and history update with delay
     handleUrlAndHistoryUpdate()
+    triggerHistoryUpdate()
   }
 
   const handleUpdateAndReloadMessage = async (
