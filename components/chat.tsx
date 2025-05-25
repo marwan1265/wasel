@@ -77,35 +77,24 @@ export function Chat({
     setMessages(savedMessages)
   }, [id])
 
-  // Separate functions for immediate URL change and delayed history update
-  const updateUrlImmediate = useCallback(() => {
-    const currentPath = window.location.pathname
-    if (currentPath !== `/search/${id}`) {
-      window.history.replaceState({}, '', `/search/${id}`)
-      console.log('[Chat] URL updated immediately to:', `/search/${id}`)
-    }
-  }, [id])
-
-  const updateHistoryDelayed = useCallback(() => {
+  // Debounced function to handle URL change and history update
+  const handleUrlAndHistoryUpdate = useCallback(() => {
     // Clear any existing timeout
     if (updateTimeoutRef.current) {
       clearTimeout(updateTimeoutRef.current)
     }
 
-    // Delay the history update to allow API early save to complete
+    // Delay the update slightly to allow API request to start
     updateTimeoutRef.current = setTimeout(() => {
-      console.log('[Chat] Dispatching delayed chat-history-updated event for chatId:', id)
+      const currentPath = window.location.pathname
+      if (currentPath !== `/search/${id}`) {
+        window.history.replaceState({}, '', `/search/${id}`)
+      }
+      
+      // Dispatch the event
       window.dispatchEvent(new CustomEvent('chat-history-updated'))
-    }, 200) // Reduced delay since sidebar now has fallback mechanism
+    }, 100) // 100ms delay to ensure API request has started
   }, [id])
-
-  const handleUrlAndHistoryUpdate = useCallback(() => {
-    // Immediate URL change for good UX
-    updateUrlImmediate()
-    
-    // Delayed history update to ensure early save completes
-    updateHistoryDelayed()
-  }, [updateUrlImmediate, updateHistoryDelayed])
 
   // Cleanup timeout on unmount
   useEffect(() => {
