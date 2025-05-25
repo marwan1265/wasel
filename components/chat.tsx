@@ -84,16 +84,20 @@ export function Chat({
       clearTimeout(updateTimeoutRef.current)
     }
 
-    // Delay the update slightly to allow API request to start
+    // Delay the update to allow API request to complete
     updateTimeoutRef.current = setTimeout(() => {
       const currentPath = window.location.pathname
       if (currentPath !== `/search/${id}`) {
         window.history.replaceState({}, '', `/search/${id}`)
+        console.log('[Chat] URL changed to:', `/search/${id}`)
       }
       
-      // Dispatch the event
-      window.dispatchEvent(new CustomEvent('chat-history-updated'))
-    }, 100) // 100ms delay to ensure API request has started
+      // Dispatch the event with a bit more delay to ensure early save completes
+      setTimeout(() => {
+        console.log('[Chat] Dispatching chat-history-updated event')
+        window.dispatchEvent(new CustomEvent('chat-history-updated'))
+      }, 200) // Additional delay for early save to complete
+    }, 100) // Initial delay to ensure API request has started
   }, [id])
 
   // Cleanup timeout on unmount

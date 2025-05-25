@@ -1,10 +1,10 @@
 'use client'
 
 import {
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarInput,
-  SidebarMenu
+    SidebarGroup,
+    SidebarGroupLabel,
+    SidebarInput,
+    SidebarMenu
 } from '@/components/ui/sidebar'
 import { useCurrentUserId } from '@/hooks/use-current-user-id'
 import { useDebounce } from '@/hooks/use-debounce'
@@ -34,6 +34,7 @@ export function ChatHistoryClient() {
   const [isPending, startTransition] = useTransition()
 
   const fetchInitialChats = useCallback(async () => {
+    console.log('[ChatHistory] fetchInitialChats called, userId:', userId)
     if (!userId) {
       setChats([])
       setNextOffset(null)
@@ -42,6 +43,7 @@ export function ChatHistoryClient() {
     }
     setIsLoading(true)
     try {
+      console.log('[ChatHistory] Fetching chats from API...')
       const response = await fetch(`/api/chats?offset=0&limit=20`)
       if (!response.ok) {
         throw new Error('Failed to fetch initial chat history')
@@ -49,6 +51,7 @@ export function ChatHistoryClient() {
       const { chats: newChats, nextOffset: newNextOffset } =
         (await response.json()) as ChatPageResponse
 
+      console.log('[ChatHistory] Received chats:', newChats.length, 'chats')
       setChats(newChats)
       setNextOffset(newNextOffset)
     } catch (error) {
@@ -67,10 +70,14 @@ export function ChatHistoryClient() {
 
   useEffect(() => {
     const handleHistoryUpdate = () => {
+      console.log('[ChatHistory] Received chat-history-updated event, userId:', userId)
       if (userId) {
+        console.log('[ChatHistory] Starting transition to fetch chats')
         startTransition(() => {
           fetchInitialChats()
         })
+      } else {
+        console.log('[ChatHistory] No userId, skipping fetch')
       }
     }
     window.addEventListener('chat-history-updated', handleHistoryUpdate)
