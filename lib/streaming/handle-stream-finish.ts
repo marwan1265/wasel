@@ -15,6 +15,101 @@ interface HandleStreamFinishParams {
   annotations?: ExtendedCoreMessage[]
 }
 
+// New function to handle partial saves on error/timeout
+export async function handleStreamError({
+  originalMessages,
+  partialResponse,
+  error,
+  chatId,
+  userId,
+  context
+}: {
+  originalMessages: Message[]
+  partialResponse?: string
+  error: Error
+  chatId: string
+  userId: string
+  context?: string // Additional context about the error
+}): Promise<void> {
+  try {
+    console.log('[handleStreamError] Handling stream error for chatId:', chatId, 'Error:', error.message)
+
+    if (process.env.ENABLE_SAVE_CHAT_HISTORY !== 'true') {
+      return
+    }
+
+    const extendedCoreMessages = convertToExtendedCoreMessages(originalMessages)
+    
+    // Get existing chat or create fallback
+    let savedChat = await getChat(chatId, userId)
+    if (!savedChat) {
+      console.log('[handleStreamError] No existing chat found, creating new one for chatId:', chatId)
+      savedChat = {
+        messages: [],
+        createdAt: new Date(),
+        userId: userId,
+        path: `/search/${chatId}`,
+        title: originalMessages[0]?.content?.toString() || 'New Chat',
+        id: chatId
+      }
+    }
+
+    // Create messages array with partial response if available
+    let messagesToSave = [...extendedCoreMessages]
+    
+    // Determine what kind of error response to save
+    let errorContent = ''
+    
+    if (partialResponse && partialResponse.trim()) {
+      // If we have partial response, save it with a note about incompleteness
+      errorContent = partialResponse.trim()
+      
+      // Add appropriate suffix based on error type
+      if (error.message.toLowerCase().includes('timeout')) {
+        errorContent += '\n\n_[Response was cut off due to timeout]_'
+      } else if (error.message.toLowerCase().includes('network')) {
+        errorContent += '\n\n_[Response was interrupted due to network error]_'
+      } else {
+        errorContent += '\n\n_[Response was incomplete due to an error]_'
+      }
+    } else {
+      // No partial response - save a helpful error message based on error type
+      if (error.message.toLowerCase().includes('timeout')) {
+        errorContent = '_The response timed out before completion. Please try again with a shorter request or simpler question._'
+      } else if (error.message.toLowerCase().includes('network')) {
+        errorContent = '_Network connection was interrupted. Please check your connection and try again._'
+      } else if (error.message.toLowerCase().includes('rate limit')) {
+        errorContent = '_Rate limit exceeded. Please wait a moment before trying again._'
+      } else {
+        errorContent = `_An error occurred: ${error.message}. Please try again._`
+      }
+    }
+
+    // Add the assistant message with error content
+    messagesToSave.push({
+      role: 'assistant',
+      content: errorContent
+    })
+
+    const finalChat: Chat = {
+      ...savedChat,
+      messages: messagesToSave,
+      title: savedChat.title === 'New Chat' && originalMessages[0]?.content 
+        ? originalMessages[0].content.toString() 
+        : savedChat.title
+    }
+
+    await saveChat(finalChat, userId).catch(saveError => {
+      console.error('[handleStreamError] Failed to save partial chat:', saveError)
+    })
+
+    console.log('[handleStreamError] Successfully saved partial chat for chatId:', chatId)
+  } catch (error) {
+    console.error('[handleStreamError] Error saving partial response:', error)
+    // Don't throw - this is error handling, we don't want to fail the error handler
+  }
+}
+
 export async function handleStreamFinish({
   responseMessages,
   originalMessages,

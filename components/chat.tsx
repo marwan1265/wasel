@@ -54,6 +54,9 @@ export function Chat({
     },
     onError: error => {
       toast.error(`Error in chat: ${error.message}`)
+      
+      // Update chat history so the failed chat appears in sidebar
+      handleUrlAndHistoryUpdate()
     },
     sendExtraMessageFields: false, // Disable extra message fields,
     experimental_throttle: 100

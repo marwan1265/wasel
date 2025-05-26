@@ -8,7 +8,7 @@ import {
 } from 'ai'
 import { getMaxAllowedTokens, truncateMessages } from '../utils/context-window'
 import { isReasoningModel } from '../utils/registry'
-import { handleStreamFinish } from './handle-stream-finish'
+import { handleStreamError, handleStreamFinish } from './handle-stream-finish'
 import { BaseStreamConfig } from './types'
 
 // Function to check if a message contains ask_question tool invocation
@@ -29,6 +29,9 @@ export function createToolCallingStreamResponse(config: BaseStreamConfig) {
     execute: async (dataStream: DataStreamWriter) => {
       const { messages, model, chatId, searchMode, userId } = config
       const modelId = `${model.providerId}:${model.id}`
+
+      // Track partial text for error handling
+      let accumulatedText = ''
 
       try {
         const coreMessages = convertToCoreMessages(messages)
@@ -65,17 +68,46 @@ export function createToolCallingStreamResponse(config: BaseStreamConfig) {
               userId,
               skipRelatedQuestions: shouldSkipRelatedQuestions
             })
+          },
+          onChunk: event => {
+            // Capture text deltas for error handling
+            if (event.chunk?.type === 'text-delta') {
+              accumulatedText += event.chunk.textDelta
+            }
           }
         })
 
         result.mergeIntoDataStream(dataStream)
       } catch (error) {
         console.error('Stream execution error:', error)
+        
+        // Save partial response on error
+        await handleStreamError({
+          originalMessages: messages,
+          partialResponse: accumulatedText,
+          error: error instanceof Error ? error : new Error(String(error)),
+          chatId,
+          userId,
+          context: 'Stream execution error'
+        })
+        
         throw error
       }
     },
     onError: error => {
-      // console.error('Stream error:', error)
+      console.error('Stream error:', error)
+      
+      // Save partial response on error (fire and forget)
+      handleStreamError({
+        originalMessages: config.messages,
+        error: error instanceof Error ? error : new Error(String(error)),
+        chatId: config.chatId,
+        userId: config.userId,
+        context: 'Stream onError callback'
+      }).catch(saveError => {
+        console.error('Failed to save partial response on stream error:', saveError)
+      })
+      
       return error instanceof Error ? error.message : String(error)
     }
   })
