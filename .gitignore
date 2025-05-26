@@ -37,3 +37,6 @@ next-env.d.ts
 
 # cursor
 .cursor/rules/private
+
+test-changes.md
+test-timeout-handling.md

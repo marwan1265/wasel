@@ -28,6 +28,11 @@ export function Chat({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const updateTimeoutRef = useRef<NodeJS.Timeout>()
+  
+  // Track if a response is currently being generated
+  const isGeneratingRef = useRef(false)
+  // Track partial response text for manual stops
+  const partialResponseRef = useRef<string>('')
 
   const {
     messages,
@@ -36,7 +41,7 @@ export function Chat({
     handleSubmit: originalHandleSubmit,
     status,
     setMessages,
-    stop,
+    stop: originalStop,
     append,
     data,
     setData,
@@ -48,21 +53,52 @@ export function Chat({
     body: {
       id
     },
-    onFinish: () => {
+    onFinish: (message) => {
+      // Response completed normally
+      isGeneratingRef.current = false
+      partialResponseRef.current = ''
       // No longer handle URL change and history update here
-      // This will still fire when the AI response completes
     },
     onError: error => {
+      console.error('Chat error:', error)
+      isGeneratingRef.current = false
+      partialResponseRef.current = ''
+      
       toast.error(`Error in chat: ${error.message}`)
       
       // Update chat history so the failed chat appears in sidebar
       handleUrlAndHistoryUpdate()
     },
-    sendExtraMessageFields: false, // Disable extra message fields,
+    sendExtraMessageFields: false,
     experimental_throttle: 100
   })
 
   const isLoading = status === 'submitted' || status === 'streaming'
+
+  // Update partial response tracking and generation state
+  useEffect(() => {
+    if (isLoading) {
+      // Mark as generating when loading starts
+      if (!isGeneratingRef.current) {
+        isGeneratingRef.current = true
+        partialResponseRef.current = ''
+      }
+      
+      // Update partial response text as messages come in
+      if (messages.length > 0) {
+        const lastMessage = messages[messages.length - 1]
+        if (lastMessage?.role === 'assistant') {
+          partialResponseRef.current = lastMessage.content || ''
+        }
+      }
+    } else {
+      // Reset when loading ends (natural completion)
+      if (isGeneratingRef.current) {
+        isGeneratingRef.current = false
+        partialResponseRef.current = ''
+      }
+    }
+  }, [messages, isLoading])
 
   const {
     anchorRef,
@@ -96,8 +132,92 @@ export function Chat({
       
       // Dispatch the event
       window.dispatchEvent(new CustomEvent('chat-history-updated'))
-    }, 100) // 100ms delay to ensure API request has started
+    }, 100)
   }, [id])
+
+  // Function to save partial response when manually stopped
+  const savePartialResponse = useCallback(async (partialText: string) => {
+    if (!partialText.trim()) return
+
+    try {
+      console.log('[savePartialResponse] Saving partial response due to user stop')
+      
+      // Call our partial save endpoint
+      const response = await fetch('/api/chat/partial-save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chatId: id,
+          messages: messages,
+          partialResponse: partialText,
+          reason: 'user_stopped'
+        }),
+      })
+
+      if (!response.ok) {
+        console.error('[savePartialResponse] Failed to save partial response:', response.statusText)
+      } else {
+        console.log('[savePartialResponse] Successfully saved partial response')
+        // Update chat history after successful save
+        handleUrlAndHistoryUpdate()
+      }
+    } catch (error) {
+      console.error('[savePartialResponse] Error saving partial response:', error)
+    }
+  }, [id, messages, handleUrlAndHistoryUpdate])
+
+  // Enhanced stop function that saves partial responses
+  const stop = useCallback(() => {
+    console.log('[stop] User manually stopped response')
+    
+    const wasGenerating = isGeneratingRef.current
+    const partialText = partialResponseRef.current
+    
+    // Reset tracking
+    isGeneratingRef.current = false
+    partialResponseRef.current = ''
+    
+    // Call original stop function
+    originalStop()
+    
+    // If we were generating and have partial text, save it
+    if (wasGenerating && partialText.trim()) {
+      // Save partial response (fire and forget)
+      savePartialResponse(partialText).catch(error => {
+        console.error('[stop] Failed to save partial response:', error)
+      })
+    } else if (wasGenerating) {
+      // Even if no partial text, update history so the stopped chat appears
+      console.log('[stop] No partial response but updating history for stopped chat')
+      handleUrlAndHistoryUpdate()
+    }
+  }, [originalStop, savePartialResponse, handleUrlAndHistoryUpdate])
+
+  // Page cleanup - save partial response if user navigates away during generation
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (isGeneratingRef.current && partialResponseRef.current.trim()) {
+        // Use navigator.sendBeacon for reliable cleanup during page unload
+        const payload = JSON.stringify({
+          chatId: id,
+          messages: messages,
+          partialResponse: partialResponseRef.current,
+          reason: 'page_unload'
+        })
+        
+        try {
+          navigator.sendBeacon('/api/chat/partial-save', payload)
+        } catch (error) {
+          console.error('[beforeunload] Failed to save partial response:', error)
+        }
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [id, messages])
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -134,36 +254,14 @@ export function Chat({
     handleUrlAndHistoryUpdate()
   }
 
-  const handleUpdateAndReloadMessage = async (
-    messageId: string,
-    newContent: string
-  ) => {
-    setMessages(currentMessages =>
-      currentMessages.map(msg =>
-        msg.id === messageId ? { ...msg, content: newContent } : msg
-      )
-    )
+  // For regeneration and other operations
+  const handleUpdateAndReloadMessage = async (messageId: string, newContent: string) => {
+    const messageIndex = messages.findIndex(msg => msg.id === messageId)
+    if (messageIndex === -1) return
 
-    try {
-      const messageIndex = messages.findIndex(msg => msg.id === messageId)
-      if (messageIndex === -1) return
-
-      const messagesUpToEdited = messages.slice(0, messageIndex + 1)
-
-      setMessages(messagesUpToEdited)
-
-      setData(undefined)
-
-      await reload({
-        body: {
-          chatId: id,
-          regenerate: true
-        }
-      })
-    } catch (error) {
-      console.error('Failed to reload after message update:', error)
-      toast.error(`Failed to reload conversation: ${(error as Error).message}`)
-    }
+    const updatedMessages = [...messages]
+    updatedMessages[messageIndex].content = newContent
+    setMessages(updatedMessages)
   }
 
   const handleReloadFrom = async (
@@ -184,10 +282,12 @@ export function Chat({
     return await reload(options)
   }
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setData(undefined)
-    handleSubmit(e)
+  // Main render with custom onSubmit
+  const onSubmit = (
+    event?: React.FormEvent<HTMLFormElement>,
+    options?: ChatRequestOptions
+  ) => {
+    handleSubmit(event, options)
   }
 
   return (
