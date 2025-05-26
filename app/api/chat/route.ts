@@ -6,7 +6,7 @@ import { Model } from '@/lib/types/models'
 import { isProviderEnabled } from '@/lib/utils/registry'
 import { cookies } from 'next/headers'
 
-export const maxDuration = 60
+export const runtime = 'edge'
 
 const DEFAULT_MODEL: Model = {
   id: 'deepseek-chat',

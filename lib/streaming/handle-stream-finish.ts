@@ -65,21 +65,23 @@ export async function handleStreamError({
       errorContent = partialResponse.trim()
       
       // Add appropriate suffix based on error type
-      if (error.message.toLowerCase().includes('timeout')) {
-        errorContent += '\n\n_[Response was cut off due to timeout]_'
+      if (error.message.toLowerCase().includes('proactive_save')) {
+        errorContent += '\n\n_[Auto-saved during long processing. Response continues...]_'
       } else if (error.message.toLowerCase().includes('network')) {
         errorContent += '\n\n_[Response was interrupted due to network error]_'
+      } else if (error.message.toLowerCase().includes('stopped by user')) {
+        errorContent += '\n\n_[Response was stopped by user]_'
       } else {
         errorContent += '\n\n_[Response was incomplete due to an error]_'
       }
     } else {
       // No partial response - save a helpful error message based on error type
-      if (error.message.toLowerCase().includes('timeout')) {
-        errorContent = '_The response timed out before completion. Please try again with a shorter request or simpler question._'
-      } else if (error.message.toLowerCase().includes('network')) {
+      if (error.message.toLowerCase().includes('network')) {
         errorContent = '_Network connection was interrupted. Please check your connection and try again._'
       } else if (error.message.toLowerCase().includes('rate limit')) {
         errorContent = '_Rate limit exceeded. Please wait a moment before trying again._'
+      } else if (error.message.toLowerCase().includes('stopped by user')) {
+        errorContent = '_Response was stopped by user._'
       } else {
         errorContent = `_An error occurred: ${error.message}. Please try again._`
       }

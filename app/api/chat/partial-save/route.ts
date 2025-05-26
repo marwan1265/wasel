@@ -2,7 +2,7 @@ import { getCurrentUserId } from '@/lib/auth/get-current-user'
 import { handleStreamError } from '@/lib/streaming/handle-stream-finish'
 import { Message } from 'ai'
 
-export const maxDuration = 30
+export const runtime = 'edge'
 
 export async function POST(req: Request) {
   try {
@@ -64,6 +64,12 @@ function getErrorMessageForReason(reason: string): string {
       return 'Page was closed during response'
     case 'navigation':
       return 'User navigated away during response'
+    case 'edge_function_timeout':
+      return 'Response exceeded time limit'
+    case 'proactive_save':
+      return 'Long-running response (auto-saved)'
+    case 'network_timeout':
+      return 'Network timeout occurred'
     default:
       return 'Response was interrupted'
   }

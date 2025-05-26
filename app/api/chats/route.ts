@@ -3,6 +3,8 @@ import { getCurrentUserId } from '@/lib/auth/get-current-user'
 import { type Chat } from '@/lib/types'
 import { NextRequest, NextResponse } from 'next/server'
 
+export const runtime = 'edge'
+
 interface ChatPageResponse {
   chats: Chat[]
   nextOffset: number | null

@@ -55,12 +55,12 @@ export function Chat({
     },
     onFinish: (message) => {
       // Response completed normally
+      console.log('[onFinish] Response completed normally')
       isGeneratingRef.current = false
       partialResponseRef.current = ''
-      // No longer handle URL change and history update here
     },
     onError: error => {
-      console.error('Chat error:', error)
+      console.error('[onError] Chat error:', error)
       isGeneratingRef.current = false
       partialResponseRef.current = ''
       
@@ -135,12 +135,12 @@ export function Chat({
     }, 100)
   }, [id])
 
-  // Function to save partial response when manually stopped
-  const savePartialResponse = useCallback(async (partialText: string) => {
+  // Function to save partial response for manual stops
+  const savePartialResponse = useCallback(async (partialText: string, reason: string = 'user_stopped') => {
     if (!partialText.trim()) return
 
     try {
-      console.log('[savePartialResponse] Saving partial response due to user stop')
+      console.log(`[savePartialResponse] Saving partial response due to: ${reason}`)
       
       // Call our partial save endpoint
       const response = await fetch('/api/chat/partial-save', {
@@ -152,7 +152,7 @@ export function Chat({
           chatId: id,
           messages: messages,
           partialResponse: partialText,
-          reason: 'user_stopped'
+          reason: reason
         }),
       })
 
@@ -185,7 +185,7 @@ export function Chat({
     // If we were generating and have partial text, save it
     if (wasGenerating && partialText.trim()) {
       // Save partial response (fire and forget)
-      savePartialResponse(partialText).catch(error => {
+      savePartialResponse(partialText, 'user_stopped').catch(error => {
         console.error('[stop] Failed to save partial response:', error)
       })
     } else if (wasGenerating) {
@@ -219,7 +219,7 @@ export function Chat({
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [id, messages])
 
-  // Cleanup timeout on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (updateTimeoutRef.current) {

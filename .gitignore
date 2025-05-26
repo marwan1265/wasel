@@ -40,3 +40,4 @@ next-env.d.ts
 
 test-changes.md
 test-timeout-handling.md
+DEEPTHINK-TIMEOUT-TESTING.md
