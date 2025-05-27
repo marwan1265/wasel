@@ -98,15 +98,25 @@ export async function checkRateLimit(
     
     if (process.env.NODE_ENV !== 'test') {
       console.log(`Window calculation: nowSeconds=${nowSeconds}, windowSeconds=${timeWindowRule.windowSeconds}, windowStartSeconds=${windowStartSeconds}`);
+      
+      // Sanity check for system clock issues
+      const nowDate = new Date(nowSeconds * 1000);
+      const currentYear = new Date().getFullYear();
+      if (nowDate.getFullYear() > currentYear + 1 || nowDate.getFullYear() < currentYear - 1) {
+        console.error(`WARNING: System clock appears to be incorrect. Detected year: ${nowDate.getFullYear()}, expected around: ${currentYear}`);
+      }
     }
 
     // Use a pipeline to check the window atomically
     const pipeline = redis.pipeline();
     
+    // Count current entries in window BEFORE cleanup
+    pipeline.zcard(timeWindowKey);
+    
     // Remove expired entries
     pipeline.zremrangebyscore(timeWindowKey, 0, windowStartSeconds);
     
-    // Count current entries in window
+    // Count current entries in window AFTER cleanup
     pipeline.zcard(timeWindowKey);
     
     // Get the oldest entry for reset time calculation
@@ -122,7 +132,11 @@ export async function checkRateLimit(
     }
 
     // Parse the results
-    const zcardResultTuple = checkResults[1];
+    const beforeCleanupTuple = checkResults[0];
+    const beforeCleanupCount = (beforeCleanupTuple && !beforeCleanupTuple[0] && typeof beforeCleanupTuple[1] === 'number') 
+      ? beforeCleanupTuple[1] : 0;
+      
+    const zcardResultTuple = checkResults[2];
     const currentWindowCount = (zcardResultTuple && !zcardResultTuple[0] && typeof zcardResultTuple[1] === 'number') 
       ? zcardResultTuple[1] : 0;
       
@@ -130,8 +144,8 @@ export async function checkRateLimit(
       console.log(`AFTER cleanup - currentWindowCount: ${currentWindowCount}`);
       
       // Debug: Log all members in the sorted set
-      const allMembersResult = checkResults[3];
-      console.log(`Debug - checkResults[3]:`, allMembersResult);
+      const allMembersResult = checkResults[4];
+      console.log(`Debug - checkResults[4]:`, allMembersResult);
       if (allMembersResult && !allMembersResult[0]) {
         console.log(`All members in window for ${userId}:${action}:`, allMembersResult[1]);
       } else if (allMembersResult && allMembersResult[0]) {
@@ -141,7 +155,7 @@ export async function checkRateLimit(
 
     // Calculate reset time
     let windowResetTimeSeconds: number;
-    const zrangeResultTuple = checkResults[2];
+    const zrangeResultTuple = checkResults[3];
     const oldestRequestMembers = (zrangeResultTuple && !zrangeResultTuple[0] && Array.isArray(zrangeResultTuple[1])) 
       ? zrangeResultTuple[1] as string[] : [];
     
@@ -152,7 +166,7 @@ export async function checkRateLimit(
       windowResetTimeSeconds = nowSeconds + timeWindowRule.windowSeconds;
     }
 
-    // Check if we would exceed the window limit
+    // Check if we would exceed the window limit (use count after cleanup)
     if (currentWindowCount >= timeWindowRule.requests) {
       if (process.env.NODE_ENV !== 'test') {
       console.log(`Window limit exceeded: userId=${userId}, action=${action}, currentCount=${currentWindowCount}, limit=${timeWindowRule.requests}`);
@@ -202,12 +216,10 @@ export async function checkRateLimit(
       console.error(`ZADD error:`, zaddResultTuple[0]);
     }
     
-    // Calculate the new window count (previous + 1 for the new entry we just added)
+    // Calculate the actual window count after increment
     const actualWindowCount = currentWindowCount + 1;
     if (process.env.NODE_ENV !== 'test') {
-      // In production, verify the actual count
-      const verifiedCount = await redis.zcard(timeWindowKey);
-      console.log(`After increment - actualWindowCount: ${verifiedCount}, previousCount: ${currentWindowCount}`);
+      console.log(`After increment - actualWindowCount: ${actualWindowCount}, previousCount: ${currentWindowCount}`);
     }
 
     // Calculate remaining requests (minimum of both limits)

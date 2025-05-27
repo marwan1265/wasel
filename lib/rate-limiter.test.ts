@@ -200,9 +200,11 @@ describe('Rate Limiter', () => {
     test('should block requests exceeding window limit', async () => {
       const windowLimit = timeWindowRateLimitConfig.free[CHAT_MESSAGE_ACTION].requests;
       mockPipeline.exec.mockResolvedValue([
+        [null, windowLimit], // zcard before cleanup
         [null, 1], // zremrangebyscore
-        [null, windowLimit], // zcard - at limit
-        [null, ['1234567890-abc']] // zrange
+        [null, windowLimit], // zcard after cleanup - at limit
+        [null, ['1234567890-abc']], // zrange oldest
+        [null, ['1234567890-abc']] // zrange all members
       ]);
       
       const result = await checkRateLimit('user123', CHAT_MESSAGE_ACTION);
@@ -231,9 +233,11 @@ describe('Rate Limiter', () => {
     test('should calculate correct reset time from oldest request', async () => {
       const oldestTimestamp = Math.floor(Date.now() / 1000) - 1000;
       mockPipeline.exec.mockResolvedValue([
-        [null, 1],
-        [null, 5],
-        [null, [`${oldestTimestamp}-abc`]]
+        [null, 5], // zcard before cleanup
+        [null, 1], // zremrangebyscore
+        [null, 5], // zcard after cleanup
+        [null, [`${oldestTimestamp}-abc`]], // zrange oldest
+        [null, [`${oldestTimestamp}-abc`]] // zrange all members
       ]);
       
       const result = await checkRateLimit('user123', CHAT_MESSAGE_ACTION);
@@ -252,9 +256,11 @@ describe('Rate Limiter', () => {
       
       // Window limit not exceeded
       mockPipeline.exec.mockResolvedValue([
-        [null, 1],
-        [null, 5], // Well within window limit
-        [null, ['1234567890-abc']]
+        [null, 5], // zcard before cleanup
+        [null, 1], // zremrangebyscore
+        [null, 5], // zcard after cleanup - well within window limit
+        [null, ['1234567890-abc']], // zrange oldest
+        [null, ['1234567890-abc']] // zrange all members
       ]);
       
       const result = await checkRateLimit('user123', CHAT_MESSAGE_ACTION);
@@ -268,9 +274,11 @@ describe('Rate Limiter', () => {
       
       const windowLimit = timeWindowRateLimitConfig.free[CHAT_MESSAGE_ACTION].requests;
       mockPipeline.exec.mockResolvedValue([
-        [null, 1],
-        [null, windowLimit], // At window limit
-        [null, ['1234567890-abc']]
+        [null, windowLimit], // zcard before cleanup
+        [null, 1], // zremrangebyscore
+        [null, windowLimit], // zcard after cleanup - at window limit
+        [null, ['1234567890-abc']], // zrange oldest
+        [null, ['1234567890-abc']] // zrange all members
       ]);
       
       const result = await checkRateLimit('user123', CHAT_MESSAGE_ACTION);
@@ -285,9 +293,11 @@ describe('Rate Limiter', () => {
       
       mockRedis.get.mockResolvedValue(String(dailyLimit - 10)); // 10 remaining daily
       mockPipeline.exec.mockResolvedValue([
-        [null, 1],
-        [null, windowLimit - 5], // 5 remaining in window
-        [null, ['1234567890-abc']]
+        [null, windowLimit - 5], // zcard before cleanup
+        [null, 1], // zremrangebyscore
+        [null, windowLimit - 5], // zcard after cleanup - 5 remaining in window
+        [null, ['1234567890-abc']], // zrange oldest
+        [null, ['1234567890-abc']] // zrange all members
       ]);
       
       const result = await checkRateLimit('user123', CHAT_MESSAGE_ACTION);
@@ -308,9 +318,11 @@ describe('Rate Limiter', () => {
         
         mockRedis.get.mockResolvedValue('5');
         mockPipeline.exec.mockResolvedValue([
-          [null, 1],
-          [null, 5],
-          [null, ['1234567890-abc']]
+          [null, 5], // zcard before cleanup
+          [null, 1], // zremrangebyscore
+          [null, 5], // zcard after cleanup
+          [null, ['1234567890-abc']], // zrange oldest
+          [null, ['1234567890-abc']] // zrange all members
         ]);
         
         const result = await checkRateLimit('user123', CHAT_MESSAGE_ACTION);
