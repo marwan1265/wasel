@@ -47,14 +47,10 @@ export async function checkRateLimit(
     const redis = await getRedisClient();
     const userTier = await getUserTier(userId);
 
-    // Debug logging for troubleshooting
-    console.log(`Rate limit check: userId=${userId}, action=${action}, tier=${userTier}`);
-    
-    // Debug: Check what's in the sorted set before we do anything
-    const debugTimeWindowKey = `rate_limit_window:${userId}:${action}`;
-    const allEntriesBeforeCleanup = await redis.zrange(debugTimeWindowKey, 0, -1);
-    const countBeforeCleanup = await redis.zcard(debugTimeWindowKey);
-    console.log(`BEFORE cleanup - count: ${countBeforeCleanup}, entries:`, allEntriesBeforeCleanup);
+    // Debug logging for troubleshooting (only in production)
+    if (process.env.NODE_ENV !== 'test') {
+      console.log(`Rate limit check: userId=${userId}, action=${action}, tier=${userTier}`);
+    }
 
     // --- Daily Limit Check (Check before increment) ---
     const dailyRule = getDailyRuleForUser(userTier, action);
@@ -100,7 +96,9 @@ export async function checkRateLimit(
     const windowStartSeconds = nowSeconds - timeWindowRule.windowSeconds;
     const timeWindowKey = `rate_limit_window:${userId}:${action}`;
     
-    console.log(`Window calculation: nowSeconds=${nowSeconds}, windowSeconds=${timeWindowRule.windowSeconds}, windowStartSeconds=${windowStartSeconds}`);
+    if (process.env.NODE_ENV !== 'test') {
+      console.log(`Window calculation: nowSeconds=${nowSeconds}, windowSeconds=${timeWindowRule.windowSeconds}, windowStartSeconds=${windowStartSeconds}`);
+    }
 
     // Use a pipeline to check the window atomically
     const pipeline = redis.pipeline();
@@ -119,22 +117,26 @@ export async function checkRateLimit(
     
     const checkResults = await pipeline.exec() as [Error | null, any][];
     
-    console.log(`Pipeline check results:`, checkResults);
+    if (process.env.NODE_ENV !== 'test') {
+      console.log(`Pipeline check results:`, checkResults);
+    }
 
     // Parse the results
     const zcardResultTuple = checkResults[1];
     const currentWindowCount = (zcardResultTuple && !zcardResultTuple[0] && typeof zcardResultTuple[1] === 'number') 
       ? zcardResultTuple[1] : 0;
       
-    console.log(`AFTER cleanup - currentWindowCount: ${currentWindowCount}`);
+    if (process.env.NODE_ENV !== 'test') {
+      console.log(`AFTER cleanup - currentWindowCount: ${currentWindowCount}`);
       
-    // Debug: Log all members in the sorted set
-    const allMembersResult = checkResults[3];
-    console.log(`Debug - checkResults[3]:`, allMembersResult);
-    if (allMembersResult && !allMembersResult[0]) {
-      console.log(`All members in window for ${userId}:${action}:`, allMembersResult[1]);
-    } else if (allMembersResult && allMembersResult[0]) {
-      console.log(`Error getting all members:`, allMembersResult[0]);
+      // Debug: Log all members in the sorted set
+      const allMembersResult = checkResults[3];
+      console.log(`Debug - checkResults[3]:`, allMembersResult);
+      if (allMembersResult && !allMembersResult[0]) {
+        console.log(`All members in window for ${userId}:${action}:`, allMembersResult[1]);
+      } else if (allMembersResult && allMembersResult[0]) {
+        console.log(`Error getting all members:`, allMembersResult[0]);
+      }
     }
 
     // Calculate reset time
@@ -152,7 +154,9 @@ export async function checkRateLimit(
 
     // Check if we would exceed the window limit
     if (currentWindowCount >= timeWindowRule.requests) {
+      if (process.env.NODE_ENV !== 'test') {
       console.log(`Window limit exceeded: userId=${userId}, action=${action}, currentCount=${currentWindowCount}, limit=${timeWindowRule.requests}`);
+    }
       const retryAfter = Math.max(0, windowResetTimeSeconds - nowSeconds);
       return {
         allowed: false,
@@ -182,8 +186,10 @@ export async function checkRateLimit(
     
     const incrementResults = await incrementPipeline.exec() as [Error | null, any][];
     
-    // Debug log the increment results
-    console.log(`Increment pipeline results:`, incrementResults);
+    // Debug log the increment results (only in production)
+    if (process.env.NODE_ENV !== 'test') {
+      console.log(`Increment pipeline results:`, incrementResults);
+    }
     
     // Get the new daily count from the increment result
     const incrResultTuple = incrementResults[0];
@@ -196,15 +202,21 @@ export async function checkRateLimit(
       console.error(`ZADD error:`, zaddResultTuple[0]);
     }
     
-    // Get the actual current window count after increment
-    const actualWindowCount = await redis.zcard(timeWindowKey);
-    console.log(`After increment - actualWindowCount: ${actualWindowCount}, previousCount: ${currentWindowCount}`);
+    // Calculate the new window count (previous + 1 for the new entry we just added)
+    const actualWindowCount = currentWindowCount + 1;
+    if (process.env.NODE_ENV !== 'test') {
+      // In production, verify the actual count
+      const verifiedCount = await redis.zcard(timeWindowKey);
+      console.log(`After increment - actualWindowCount: ${verifiedCount}, previousCount: ${currentWindowCount}`);
+    }
 
     // Calculate remaining requests (minimum of both limits)
     const dailyRemaining = Math.max(0, dailyRule.requests - newDailyCount);
     const windowRemaining = Math.max(0, timeWindowRule.requests - actualWindowCount);
     
-    console.log(`Request allowed: userId=${userId}, action=${action}, dailyCount=${newDailyCount}/${dailyRule.requests}, windowCount=${actualWindowCount}/${timeWindowRule.requests}, remaining=${Math.min(dailyRemaining, windowRemaining)}`);
+    if (process.env.NODE_ENV !== 'test') {
+      console.log(`Request allowed: userId=${userId}, action=${action}, dailyCount=${newDailyCount}/${dailyRule.requests}, windowCount=${actualWindowCount}/${timeWindowRule.requests}, remaining=${Math.min(dailyRemaining, windowRemaining)}`);
+    }
     
     return {
       allowed: true,
