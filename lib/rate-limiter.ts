@@ -49,6 +49,12 @@ export async function checkRateLimit(
 
     // Debug logging for troubleshooting
     console.log(`Rate limit check: userId=${userId}, action=${action}, tier=${userTier}`);
+    
+    // Debug: Check what's in the sorted set before we do anything
+    const debugTimeWindowKey = `rate_limit_window:${userId}:${action}`;
+    const allEntriesBeforeCleanup = await redis.zrange(debugTimeWindowKey, 0, -1);
+    const countBeforeCleanup = await redis.zcard(debugTimeWindowKey);
+    console.log(`BEFORE cleanup - count: ${countBeforeCleanup}, entries:`, allEntriesBeforeCleanup);
 
     // --- Daily Limit Check (Check before increment) ---
     const dailyRule = getDailyRuleForUser(userTier, action);
@@ -93,6 +99,8 @@ export async function checkRateLimit(
     const nowSeconds = Math.floor(Date.now() / 1000);
     const windowStartSeconds = nowSeconds - timeWindowRule.windowSeconds;
     const timeWindowKey = `rate_limit_window:${userId}:${action}`;
+    
+    console.log(`Window calculation: nowSeconds=${nowSeconds}, windowSeconds=${timeWindowRule.windowSeconds}, windowStartSeconds=${windowStartSeconds}`);
 
     // Use a pipeline to check the window atomically
     const pipeline = redis.pipeline();
@@ -110,16 +118,23 @@ export async function checkRateLimit(
     pipeline.zrange(timeWindowKey, 0, -1);
     
     const checkResults = await pipeline.exec() as [Error | null, any][];
+    
+    console.log(`Pipeline check results:`, checkResults);
 
     // Parse the results
     const zcardResultTuple = checkResults[1];
     const currentWindowCount = (zcardResultTuple && !zcardResultTuple[0] && typeof zcardResultTuple[1] === 'number') 
       ? zcardResultTuple[1] : 0;
       
+    console.log(`AFTER cleanup - currentWindowCount: ${currentWindowCount}`);
+      
     // Debug: Log all members in the sorted set
     const allMembersResult = checkResults[3];
+    console.log(`Debug - checkResults[3]:`, allMembersResult);
     if (allMembersResult && !allMembersResult[0]) {
       console.log(`All members in window for ${userId}:${action}:`, allMembersResult[1]);
+    } else if (allMembersResult && allMembersResult[0]) {
+      console.log(`Error getting all members:`, allMembersResult[0]);
     }
 
     // Calculate reset time
@@ -180,12 +195,16 @@ export async function checkRateLimit(
     if (zaddResultTuple && zaddResultTuple[0]) {
       console.error(`ZADD error:`, zaddResultTuple[0]);
     }
+    
+    // Get the actual current window count after increment
+    const actualWindowCount = await redis.zcard(timeWindowKey);
+    console.log(`After increment - actualWindowCount: ${actualWindowCount}, previousCount: ${currentWindowCount}`);
 
     // Calculate remaining requests (minimum of both limits)
     const dailyRemaining = Math.max(0, dailyRule.requests - newDailyCount);
-    const windowRemaining = Math.max(0, timeWindowRule.requests - (currentWindowCount + 1));
+    const windowRemaining = Math.max(0, timeWindowRule.requests - actualWindowCount);
     
-    console.log(`Request allowed: userId=${userId}, action=${action}, dailyCount=${newDailyCount}/${dailyRule.requests}, windowCount=${currentWindowCount + 1}/${timeWindowRule.requests}, remaining=${Math.min(dailyRemaining, windowRemaining)}`);
+    console.log(`Request allowed: userId=${userId}, action=${action}, dailyCount=${newDailyCount}/${dailyRule.requests}, windowCount=${actualWindowCount}/${timeWindowRule.requests}, remaining=${Math.min(dailyRemaining, windowRemaining)}`);
     
     return {
       allowed: true,
