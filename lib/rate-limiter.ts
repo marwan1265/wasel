@@ -47,6 +47,9 @@ export async function checkRateLimit(
     const redis = await getRedisClient();
     const userTier = await getUserTier(userId);
 
+    // Debug logging for troubleshooting
+    console.log(`Rate limit check: userId=${userId}, action=${action}, tier=${userTier}`);
+
     // --- Daily Limit Check (Check before increment) ---
     const dailyRule = getDailyRuleForUser(userTier, action);
     if (!dailyRule) {
@@ -125,6 +128,7 @@ export async function checkRateLimit(
 
     // Check if we would exceed the window limit
     if (currentWindowCount >= timeWindowRule.requests) {
+      console.log(`Window limit exceeded: userId=${userId}, action=${action}, currentCount=${currentWindowCount}, limit=${timeWindowRule.requests}`);
       const retryAfter = Math.max(0, windowResetTimeSeconds - nowSeconds);
       return {
         allowed: false,
@@ -162,6 +166,8 @@ export async function checkRateLimit(
     // Calculate remaining requests (minimum of both limits)
     const dailyRemaining = Math.max(0, dailyRule.requests - newDailyCount);
     const windowRemaining = Math.max(0, timeWindowRule.requests - (currentWindowCount + 1));
+    
+    console.log(`Request allowed: userId=${userId}, action=${action}, dailyCount=${newDailyCount}/${dailyRule.requests}, windowCount=${currentWindowCount + 1}/${timeWindowRule.requests}, remaining=${Math.min(dailyRemaining, windowRemaining)}`);
     
     return {
       allowed: true,
