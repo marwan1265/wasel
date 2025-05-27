@@ -98,6 +98,7 @@ export async function checkRateLimit(
     
     if (process.env.NODE_ENV !== 'test') {
       console.log(`Window calculation: nowSeconds=${nowSeconds}, windowSeconds=${timeWindowRule.windowSeconds}, windowStartSeconds=${windowStartSeconds}`);
+      console.log(`ZREMRANGEBYSCORE will remove entries with scores between 0 and ${windowStartSeconds}`);
       
       // Sanity check for system clock issues
       const nowDate = new Date(nowSeconds * 1000);
@@ -148,6 +149,15 @@ export async function checkRateLimit(
       console.log(`Debug - checkResults[4]:`, allMembersResult);
       if (allMembersResult && !allMembersResult[0]) {
         console.log(`All members in window for ${userId}:${action}:`, allMembersResult[1]);
+        // Parse and log the actual scores from member names
+        const members = allMembersResult[1] as string[];
+        if (members && members.length > 0) {
+          const scores = members.map(member => {
+            const score = parseInt(member.split('-')[0], 10);
+            return { member, score, olderThanWindow: score <= windowStartSeconds };
+          });
+          console.log(`Parsed scores and expiry check:`, scores);
+        }
       } else if (allMembersResult && allMembersResult[0]) {
         console.log(`Error getting all members:`, allMembersResult[0]);
       }
