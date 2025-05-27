@@ -80,6 +80,15 @@ export class RedisWrapper {
     return this.client.get(key);
   }
 
+  async set(key: string, value: string | number, options?: { ex?: number; nx?: boolean }): Promise<string | number | null> {
+    const result = await this.client.set(key, value, options as any);
+    return result;
+  }
+
+  async eval(script: string, keys: string[], args: (string | number)[]): Promise<any> {
+    return this.client.eval(script, keys, args);
+  }
+
   async close(): Promise<void> {
     // Upstash Redis doesn't require explicit closing
     return
@@ -131,6 +140,16 @@ class UpstashPipelineWrapper {
 
   zrange(key: string, start: number, stop: number) {
     this.pipeline.zrange(key, start, stop);
+    return this;
+  }
+
+  incr(key: string) {
+    this.pipeline.incr(key);
+    return this;
+  }
+
+  eval(script: string, keys: string[], args: (string | number)[]) {
+    this.pipeline.eval(script, keys, args);
     return this;
   }
 
