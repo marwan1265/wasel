@@ -121,7 +121,13 @@ export function ChatPanel({
         </div>
       )}
       <form
-        onSubmit={handleSubmit}
+        onSubmit={(e) => {
+          if (isLoading || isToolInvocationInProgress()) {
+            e.preventDefault()
+            return
+          }
+          handleSubmit(e)
+        }}
         className={cn('max-w-3xl w-full mx-auto relative')}
       >
         {/* Add scroll-down button to ChatPanel right top - show when not auto scrolling */}
@@ -156,8 +162,7 @@ export function ChatPanel({
             placeholder="اسأل سؤالاً..."
             spellCheck={false}
             value={input}
-            disabled={isLoading || isToolInvocationInProgress()}
-            className="resize-none w-full min-h-12 bg-transparent border-0 p-4 text-sm placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="resize-none w-full min-h-12 bg-transparent border-0 p-4 text-sm placeholder:text-muted-foreground focus-visible:outline-none"
             onChange={e => {
               handleInputChange(e)
               setShowEmptyScreen(e.target.value.length === 0)
@@ -169,7 +174,7 @@ export function ChatPanel({
                 !isComposing &&
                 !enterDisabled
               ) {
-                if (input.trim().length === 0) {
+                if (input.trim().length === 0 || isLoading || isToolInvocationInProgress()) {
                   e.preventDefault()
                   return
                 }

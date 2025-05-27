@@ -1,5 +1,4 @@
 import { getRedisClient } from '@/lib/redis/config';
-import crypto from 'crypto';
 
 /**
  * Request deduplication to prevent counting duplicate/retry requests
@@ -16,9 +15,9 @@ export interface DeduplicationOptions {
 }
 
 /**
- * Generate a fingerprint for a request
+ * Generate a fingerprint for a request using Web Crypto API (Edge Runtime compatible)
  */
-export function generateRequestFingerprint(
+export async function generateRequestFingerprint(
   userId: string,
   action: string,
   requestInfo: {
@@ -28,7 +27,7 @@ export function generateRequestFingerprint(
     headers?: Record<string, string>;
   },
   options: DeduplicationOptions = {}
-): string {
+): Promise<string> {
   const parts = [
     userId,
     action,
@@ -47,10 +46,18 @@ export function generateRequestFingerprint(
     parts.push(options.customData);
   }
 
-  // Create a hash of the request parts
-  const hash = crypto.createHash('sha256');
-  hash.update(parts.join('|'));
-  return hash.digest('hex');
+  // Create a hash of the request parts using Web Crypto API
+  const encoder = new TextEncoder();
+  const data = encoder.encode(parts.join('|'));
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  
+  // Convert ArrayBuffer to hex string
+  const hashArray = new Uint8Array(hashBuffer);
+  const hashHex = Array.from(hashArray)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  
+  return hashHex;
 }
 
 /**

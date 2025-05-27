@@ -57,7 +57,7 @@ describe('Rate Limiting Middleware', () => {
       reset: new Date(Date.now() + 3600000), // 1 hour from now
     });
     
-    mockedGenerateRequestFingerprint.mockReturnValue('fingerprint123');
+    mockedGenerateRequestFingerprint.mockResolvedValue('fingerprint123');
     mockedCheckRequestDuplicate.mockResolvedValue(false);
   });
 
@@ -289,9 +289,7 @@ describe('Rate Limiting Middleware', () => {
     });
 
     test('should handle fingerprint generation errors', async () => {
-      mockedGenerateRequestFingerprint.mockImplementation(() => {
-        throw new Error('Fingerprint error');
-      });
+      mockedGenerateRequestFingerprint.mockRejectedValue(new Error('Fingerprint error'));
       
       const request = createRequest('/api/test');
       const response = await middleware(request);

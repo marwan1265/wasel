@@ -93,7 +93,7 @@ export async function middleware(request: NextRequest) {
       const action = getActionFromRequest(pathname, request.method)
       
       // Generate request fingerprint for deduplication
-      const fingerprint = generateRequestFingerprint(
+      const fingerprint = await generateRequestFingerprint(
         userId,
         action,
         {
