@@ -106,12 +106,21 @@ export async function checkRateLimit(
     // Get the oldest entry for reset time calculation
     pipeline.zrange(timeWindowKey, 0, 0);
     
+    // Debug: Get all members to see what's in the set
+    pipeline.zrange(timeWindowKey, 0, -1);
+    
     const checkResults = await pipeline.exec() as [Error | null, any][];
 
     // Parse the results
     const zcardResultTuple = checkResults[1];
     const currentWindowCount = (zcardResultTuple && !zcardResultTuple[0] && typeof zcardResultTuple[1] === 'number') 
       ? zcardResultTuple[1] : 0;
+      
+    // Debug: Log all members in the sorted set
+    const allMembersResult = checkResults[3];
+    if (allMembersResult && !allMembersResult[0]) {
+      console.log(`All members in window for ${userId}:${action}:`, allMembersResult[1]);
+    }
 
     // Calculate reset time
     let windowResetTimeSeconds: number;
@@ -158,10 +167,19 @@ export async function checkRateLimit(
     
     const incrementResults = await incrementPipeline.exec() as [Error | null, any][];
     
+    // Debug log the increment results
+    console.log(`Increment pipeline results:`, incrementResults);
+    
     // Get the new daily count from the increment result
     const incrResultTuple = incrementResults[0];
     const newDailyCount = (incrResultTuple && !incrResultTuple[0] && typeof incrResultTuple[1] === 'number')
       ? incrResultTuple[1] : dailyCount + 1;
+      
+    // Check if zadd succeeded
+    const zaddResultTuple = incrementResults[1];
+    if (zaddResultTuple && zaddResultTuple[0]) {
+      console.error(`ZADD error:`, zaddResultTuple[0]);
+    }
 
     // Calculate remaining requests (minimum of both limits)
     const dailyRemaining = Math.max(0, dailyRule.requests - newDailyCount);

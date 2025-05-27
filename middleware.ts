@@ -19,11 +19,16 @@ export const config = {
 
 // Helper function to determine the action based on the request
 function getActionFromRequest(pathname: string, method: string): string {
+  // Debug logging to see what we're getting
+  console.log(`Action detection: pathname="${pathname}", method="${method}"`);
+  
   // Only POST requests to /api/chat (exactly) are chat messages
   if (pathname === '/api/chat' && method === 'POST') {
+    console.log('Detected as chat_message');
     return 'chat_message';
   }
   // Default to general API access for other endpoints
+  console.log('Detected as general_api_access');
   return 'general_api_access';
 }
 
