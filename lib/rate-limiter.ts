@@ -142,6 +142,11 @@ export async function checkRateLimit(
       ? zcardResultTuple[1] : 0;
       
     if (process.env.NODE_ENV !== 'test') {
+      console.log(`Debug parsing: beforeCleanupTuple=${JSON.stringify(beforeCleanupTuple)}, zcardResultTuple=${JSON.stringify(zcardResultTuple)}`);
+      console.log(`Parsed counts: beforeCleanupCount=${beforeCleanupCount}, currentWindowCount=${currentWindowCount}`);
+    }
+      
+    if (process.env.NODE_ENV !== 'test') {
       console.log(`AFTER cleanup - currentWindowCount: ${currentWindowCount}`);
       
       // Debug: Log all members in the sorted set
