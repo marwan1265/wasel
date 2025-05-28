@@ -1,9 +1,9 @@
 import {
-    CoreMessage,
-    DataStreamWriter,
-    generateId,
-    generateText,
-    JSONValue
+  CoreMessage,
+  DataStreamWriter,
+  generateId,
+  generateText,
+  JSONValue
 } from 'ai'
 import { z } from 'zod'
 import { searchSchema } from '../schema/search'

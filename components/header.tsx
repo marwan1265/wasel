@@ -36,13 +36,41 @@ export const Header: React.FC<HeaderProps> = ({ user, isGuestUser }) => {
   return (
     <header
       className={cn(
-        'absolute top-0 left-0 p-2 flex items-center z-10 backdrop-blur lg:backdrop-blur-none bg-background/80 lg:bg-transparent transition-[width] duration-200 ease-linear',
+        'absolute top-0 left-0 p-2 flex justify-between items-center z-10 backdrop-blur lg:backdrop-blur-none bg-background/80 lg:bg-transparent transition-[width] duration-200 ease-linear',
         open ? 'md:w-[calc(100%-var(--sidebar-width))]' : 'md:w-full',
         'w-full'
       )}
     >
-      {/* New Chat Button - positioned on the left */}
-      <div className="flex-1 flex justify-start">
+      {/* Left side - Auth Buttons for guests */}
+      <div className="flex items-center gap-2 ml-2">
+        {shouldShowGuestMenu ? (
+          <>
+            <Link href="/auth/login">
+              <Button 
+                variant="default" 
+                size="sm"
+                className="rounded-full px-4 bg-black text-white hover:bg-gray-800 transition-colors duration-200"
+              >
+                تسجيل الدخول
+              </Button>
+            </Link>
+            <Link href="/auth/sign-up">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="rounded-full px-4 border-gray-300 hover:bg-gray-100 hover:border-gray-400 transition-colors duration-200"
+              >
+                إنشاء حساب
+              </Button>
+            </Link>
+          </>
+        ) : (
+          <div></div>
+        )}
+      </div>
+
+      {/* Right side - New Chat Button and Settings/User Menu */}
+      <div className="flex items-center gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -59,35 +87,8 @@ export const Header: React.FC<HeaderProps> = ({ user, isGuestUser }) => {
             <p>محادثة جديدة</p>
           </TooltipContent>
         </Tooltip>
-      </div>
-
-      {/* Auth Buttons / User Menu - positioned on the right */}
-      <div className="flex items-center gap-2">
-        {shouldShowGuestMenu ? (
-          <>
-            <Link href="/auth/login">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="rounded-full px-4 hover:bg-accent"
-              >
-                تسجيل الدخول
-              </Button>
-            </Link>
-            <Link href="/auth/sign-up">
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="rounded-full px-4 hover:bg-accent"
-              >
-                إنشاء حساب
-              </Button>
-            </Link>
-            <GuestMenu />
-          </>
-        ) : (
-          <UserMenu user={user!} />
-        )}
+        
+        {shouldShowGuestMenu ? <GuestMenu /> : <UserMenu user={user!} />}
       </div>
     </header>
   )
