@@ -44,6 +44,7 @@ export async function executeToolCall(
     system: `You are an intelligent assistant that analyzes conversations to select the most appropriate tools and their parameters.
             You excel at understanding context to determine when and how to use available tools, including crafting effective search queries.
             Important: When crafting the \`<query>search query text</query>\` for the \`search\` tool, if the user's messages in the conversation are primarily in Arabic, the \`search query text\` MUST also be in Arabic.
+            If you are a reasoning model, you should also think in Arabic when the conversation is in Arabic.
             Current date: ${new Date().toISOString().split('T')[0]}
 
             Do not include any other text in your response.

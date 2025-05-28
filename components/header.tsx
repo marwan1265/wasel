@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { useChat } from '@ai-sdk/react'
 import { User } from '@supabase/supabase-js'
 import { MessageCirclePlus } from 'lucide-react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import React from 'react'
 import GuestMenu from './guest-menu'
@@ -60,7 +61,32 @@ export const Header: React.FC<HeaderProps> = ({ user, isGuestUser }) => {
             <p>محادثة جديدة</p>
           </TooltipContent>
         </Tooltip>
-        {shouldShowGuestMenu ? <GuestMenu /> : <UserMenu user={user!} />}
+        
+        {shouldShowGuestMenu ? (
+          <div className="flex items-center gap-2">
+            <Link href="/auth/login">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="rounded-full px-4 hover:bg-accent"
+              >
+                تسجيل الدخول
+              </Button>
+            </Link>
+            <Link href="/auth/sign-up">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="rounded-full px-4 hover:bg-accent"
+              >
+                إنشاء حساب
+              </Button>
+            </Link>
+            <GuestMenu />
+          </div>
+        ) : (
+          <UserMenu user={user!} />
+        )}
       </div>
     </header>
   )

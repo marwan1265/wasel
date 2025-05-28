@@ -7,9 +7,9 @@ import { groq } from '@ai-sdk/groq'
 import { createOpenAI, openai } from '@ai-sdk/openai'
 import { xai } from '@ai-sdk/xai'
 import {
-  createProviderRegistry,
-  extractReasoningMiddleware,
-  wrapLanguageModel
+    createProviderRegistry,
+    extractReasoningMiddleware,
+    wrapLanguageModel
 } from 'ai'
 import { createOllama } from 'ollama-ai-provider'
 
@@ -61,6 +61,16 @@ export function getModel(model: string) {
     // if ollama provider, set simulateStreaming to true
     return ollama(modelName, {
       simulateStreaming: true
+    })
+  }
+
+  // if model is deepseek and includes reasoning models, add reasoning middleware
+  if (provider === 'deepseek' && (model.includes('deepseek-r1') || model.includes('deepseek-reasoner'))) {
+    return wrapLanguageModel({
+      model: registry.languageModel(model as Parameters<typeof registry.languageModel>[0]),
+      middleware: extractReasoningMiddleware({
+        tagName: 'think'
+      })
     })
   }
 

@@ -4,8 +4,6 @@ import { Button } from '@/components/ui/button'
 import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuSub,
     DropdownMenuSubContent,
     DropdownMenuSubTrigger,
@@ -14,11 +12,9 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
     Link2,
-    LogIn,
     Palette,
     Settings2 // Or EllipsisVertical, etc.
 } from 'lucide-react'
-import Link from 'next/link'
 import { ExternalLinkItems } from './external-link-items'
 import { ThemeMenuItems } from './theme-menu-items'
 
@@ -39,13 +35,6 @@ export default function GuestMenu() {
         </TooltipContent>
       </Tooltip>
       <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuItem asChild>
-          <Link href="/auth/login">
-            <LogIn className="mr-3 ml-4 h-4 w-4" />
-            <span>تسجيل الدخول</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <Palette className="mr-3 ml-4 h-4 w-4" />
