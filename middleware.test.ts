@@ -144,6 +144,31 @@ describe('Rate Limiting Middleware', () => {
       expect(response.status).not.toBe(401);
       expect(checkRateLimit).toHaveBeenCalled();
     });
+
+    test('should set canSignIn to false for authenticated users', async () => {
+      // Mock authenticated user
+      mockSupabaseClient.auth.getUser = jest.fn(() => Promise.resolve({
+        data: { user: { id: 'user123', email: 'test@example.com', is_anonymous: false } },
+        error: null
+      }));
+
+      mockedCheckRateLimit.mockResolvedValue({
+        allowed: false,
+        limit: 100,
+        remaining: 0,
+        reset: new Date(),
+        retryAfterSeconds: 300,
+        reason: 'time_window_limit',
+      });
+      
+      const request = createRequest('/api/test');
+      const response = await middleware(request);
+      
+      const body = await response.json();
+      expect(body.canSignIn).toBe(false);
+      expect(body.upgradeAction).toBe('upgrade');
+      expect(body.message).toContain('اشترك في الباقة المميزة');
+    });
   });
 
   describe('Request Deduplication', () => {
@@ -231,12 +256,18 @@ describe('Rate Limiting Middleware', () => {
 
   describe('Error Responses', () => {
     test('should return 429 when rate limit exceeded', async () => {
+      // Set up anonymous user for guest tier behavior
+      mockSupabaseClient.auth.getUser = jest.fn(() => Promise.resolve({
+        data: { user: { id: 'anon_user', is_anonymous: true } },
+        error: null
+      }));
+
       mockedCheckRateLimit.mockResolvedValue({
         allowed: false,
         limit: 100,
         remaining: 0,
         reset: new Date(),
-        retryAfterSeconds: 300,
+        retryAfterSeconds: 60,
         reason: 'time_window_limit',
       });
       
@@ -246,10 +277,22 @@ describe('Rate Limiting Middleware', () => {
       expect(response.status).toBe(429);
       const body = await response.json();
       expect(body.error).toBe('Too Many Requests');
-      expect(body.message).toContain('Too many requests');
+      expect(body.message).toContain('لقد وصلت للحد المسموح من الرسائل');
+      expect(body.message).toContain('بضع دقائق');
+      expect(body.message).toContain('سجل دخولك للحصول على حدود أعلى');
+      expect(body.reason).toBe('time_window_limit');
+      expect(body.timeRemaining).toBe('بضع دقائق');
+      expect(body.canSignIn).toBe(true);
+      expect(body.upgradeAction).toBe('signin');
     });
 
     test('should include appropriate message for daily limit', async () => {
+      // Set up anonymous user for guest tier behavior
+      mockSupabaseClient.auth.getUser = jest.fn(() => Promise.resolve({
+        data: { user: { id: 'anon_user', is_anonymous: true } },
+        error: null
+      }));
+
       mockedCheckRateLimit.mockResolvedValue({
         allowed: false,
         limit: 100,
@@ -263,7 +306,64 @@ describe('Rate Limiting Middleware', () => {
       const response = await middleware(request);
       
       const body = await response.json();
-      expect(body.message).toContain('Daily limit exceeded');
+      expect(body.message).toContain('تم الوصول للحد اليومي للرسائل');
+      expect(body.message).toContain('سجل دخولك للحصول على حدود أعلى');
+      expect(body.reason).toBe('daily_limit');
+      expect(body.canSignIn).toBe(true);
+      expect(body.upgradeAction).toBe('signin');
+    });
+
+    test('should format time remaining correctly', async () => {
+      // Test short time (< 5 minutes)
+      mockedCheckRateLimit.mockResolvedValue({
+        allowed: false,
+        limit: 100,
+        remaining: 0,
+        reset: new Date(),
+        retryAfterSeconds: 30,
+        reason: 'time_window_limit',
+      });
+      
+      let request = createRequest('/api/test');
+      let response = await middleware(request);
+      let body = await response.json();
+      
+      expect(body.timeRemaining).toBe('بضع دقائق');
+      expect(body.message).toContain('بضع دقائق');
+
+      // Test medium time (30 minutes)
+      mockedCheckRateLimit.mockResolvedValue({
+        allowed: false,
+        limit: 100,
+        remaining: 0,
+        reset: new Date(),
+        retryAfterSeconds: 1800,
+        reason: 'time_window_limit',
+      });
+      
+      request = createRequest('/api/test');
+      response = await middleware(request);
+      body = await response.json();
+      
+      expect(body.timeRemaining).toBe('أقل من ساعة');
+      expect(body.message).toContain('أقل من ساعة');
+
+      // Test long time (2 hours)
+      mockedCheckRateLimit.mockResolvedValue({
+        allowed: false,
+        limit: 100,
+        remaining: 0,
+        reset: new Date(),
+        retryAfterSeconds: 7200,
+        reason: 'time_window_limit',
+      });
+      
+      request = createRequest('/api/test');
+      response = await middleware(request);
+      body = await response.json();
+      
+      expect(body.timeRemaining).toBe('بضع ساعات');
+      expect(body.message).toContain('بضع ساعات');
     });
   });
 

@@ -165,16 +165,75 @@ export async function middleware(request: NextRequest) {
           duration: Date.now() - start
         })
 
-        const errorMessage = rateLimitResult.reason === 'daily_limit' 
-          ? `Daily limit exceeded. Please try again after ${rateLimitResult.reset.toLocaleString()}.`
-          : `Too many requests. Please try again in ${rateLimitResult.retryAfterSeconds} seconds.`
+        // Format time remaining in a user-friendly way (vague for security)
+        const formatTimeRemaining = (seconds: number): string => {
+          if (seconds < 300) { // Less than 5 minutes
+            return 'بضع دقائق'
+          }
+          if (seconds < 1800) { // Less than 30 minutes
+            return 'أقل من نصف ساعة'
+          }
+          if (seconds < 3600) { // Less than 1 hour
+            return 'أقل من ساعة'
+          }
+          if (seconds < 7200) { // Less than 2 hours
+            return 'ساعة أو ساعتين'
+          }
+          if (seconds < 21600) { // Less than 6 hours
+            return 'بضع ساعات'
+          }
+          return 'عدة ساعات'
+        }
+
+        // Determine user tier for appropriate upgrade message
+        let userTier: string
+        if (!user || user.is_anonymous === true) {
+          userTier = 'guest'
+        } else {
+          // For authenticated users, we'll default to 'free' 
+          // (checking subscriptions in middleware would be too expensive)
+          userTier = 'free'
+        }
+
+        let userMessage: string
+        let upgradeAction: string | null = null
+        
+        if (rateLimitResult.reason === 'daily_limit') {
+          if (userTier === 'guest') {
+            userMessage = 'تم الوصول للحد اليومي للرسائل. سجل دخولك للحصول على حدود أعلى أو حاول مرة أخرى غداً.'
+            upgradeAction = 'signin'
+          } else if (userTier === 'free') {
+            userMessage = 'تم الوصول للحد اليومي للرسائل. اشترك في الباقة المميزة للحصول على حدود أعلى أو حاول مرة أخرى غداً.'
+            upgradeAction = 'upgrade'
+          } else {
+            userMessage = 'تم الوصول للحد اليومي للرسائل. حاول مرة أخرى غداً.'
+            upgradeAction = null
+          }
+        } else {
+          const timeRemaining = formatTimeRemaining(rateLimitResult.retryAfterSeconds || 60)
+          if (userTier === 'guest') {
+            userMessage = `لقد وصلت للحد المسموح من الرسائل. حاول مرة أخرى خلال ${timeRemaining} أو سجل دخولك للحصول على حدود أعلى.`
+            upgradeAction = 'signin'
+          } else if (userTier === 'free') {
+            userMessage = `لقد وصلت للحد المسموح من الرسائل. حاول مرة أخرى خلال ${timeRemaining} أو اشترك في الباقة المميزة للحصول على حدود أعلى.`
+            upgradeAction = 'upgrade'
+          } else {
+            userMessage = `لقد وصلت للحد المسموح من الرسائل. حاول مرة أخرى خلال ${timeRemaining}.`
+            upgradeAction = null
+          }
+        }
 
         return new NextResponse(
           JSON.stringify({ 
             error: 'Too Many Requests',
-            message: errorMessage,
+            message: userMessage,
             retryAfter: rateLimitResult.retryAfterSeconds,
-            reset: rateLimitResult.reset.toISOString()
+            reset: rateLimitResult.reset.toISOString(),
+            reason: rateLimitResult.reason,
+            // Add additional info for the UI
+            timeRemaining: rateLimitResult.retryAfterSeconds ? formatTimeRemaining(rateLimitResult.retryAfterSeconds) : null,
+            canSignIn: !user || user.is_anonymous === true,
+            upgradeAction: upgradeAction
           }),
           { 
             status: 429,

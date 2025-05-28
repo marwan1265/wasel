@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useTransition } from 'react'
 import { toast } from 'sonner'
 import { ChatMessages } from './chat-messages'
 import { ChatPanel } from './chat-panel'
+import { showRateLimitToast } from './rate-limit-error'
 
 export function Chat({
   id,
@@ -64,7 +65,42 @@ export function Chat({
       isGeneratingRef.current = false
       partialResponseRef.current = ''
       
-      toast.error(`Error in chat: ${error.message}`)
+      // Check if this is a rate limit error (429 status)
+      const isRateLimitError = error.message.includes('429') || 
+                              error.message.toLowerCase().includes('rate limit') ||
+                              error.message.toLowerCase().includes('too many requests')
+      
+      if (isRateLimitError) {
+        // Try to parse additional error details from the error message
+        try {
+          // The error message might contain JSON with additional details
+          const jsonMatch = error.message.match(/\{.*\}/)
+          if (jsonMatch) {
+            const errorData = JSON.parse(jsonMatch[0])
+            showRateLimitToast({
+              reason: errorData.reason,
+              timeRemaining: errorData.timeRemaining,
+              canSignIn: errorData.canSignIn,
+              upgradeAction: errorData.upgradeAction
+            })
+          } else {
+            // Fallback to generic rate limit toast
+            showRateLimitToast({
+              reason: 'time_window_limit',
+              canSignIn: true
+            })
+          }
+        } catch {
+          // If parsing fails, show generic rate limit error
+          showRateLimitToast({
+            reason: 'time_window_limit',
+            canSignIn: true
+          })
+        }
+      } else {
+        // Show generic error for non-rate-limit errors
+        toast.error(`Error in chat: ${error.message}`)
+      }
       
       // Update chat history so the failed chat appears in sidebar
       handleUrlAndHistoryUpdate()
