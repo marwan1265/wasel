@@ -132,14 +132,16 @@ export async function checkRateLimit(
       console.log(`Pipeline check results:`, checkResults);
     }
 
-    // Parse the results
+    // Parse the results - handle both tuple format [error, result] and direct values
     const beforeCleanupTuple = checkResults[0];
-    const beforeCleanupCount = (beforeCleanupTuple && !beforeCleanupTuple[0] && typeof beforeCleanupTuple[1] === 'number') 
-      ? beforeCleanupTuple[1] : 0;
+    const beforeCleanupCount = Array.isArray(beforeCleanupTuple) 
+      ? (beforeCleanupTuple[0] ? 0 : (typeof beforeCleanupTuple[1] === 'number' ? beforeCleanupTuple[1] : 0))
+      : (typeof beforeCleanupTuple === 'number' ? beforeCleanupTuple : 0);
       
     const zcardResultTuple = checkResults[2];
-    const currentWindowCount = (zcardResultTuple && !zcardResultTuple[0] && typeof zcardResultTuple[1] === 'number') 
-      ? zcardResultTuple[1] : 0;
+    const currentWindowCount = Array.isArray(zcardResultTuple)
+      ? (zcardResultTuple[0] ? 0 : (typeof zcardResultTuple[1] === 'number' ? zcardResultTuple[1] : 0))
+      : (typeof zcardResultTuple === 'number' ? zcardResultTuple : 0);
       
     if (process.env.NODE_ENV !== 'test') {
       console.log(`Debug parsing: beforeCleanupTuple=${JSON.stringify(beforeCleanupTuple)}, zcardResultTuple=${JSON.stringify(zcardResultTuple)}`);
@@ -152,27 +154,27 @@ export async function checkRateLimit(
       // Debug: Log all members in the sorted set
       const allMembersResult = checkResults[4];
       console.log(`Debug - checkResults[4]:`, allMembersResult);
-      if (allMembersResult && !allMembersResult[0]) {
-        console.log(`All members in window for ${userId}:${action}:`, allMembersResult[1]);
-        // Parse and log the actual scores from member names
-        const members = allMembersResult[1] as string[];
-        if (members && members.length > 0) {
-          const scores = members.map(member => {
-            const score = parseInt(member.split('-')[0], 10);
-            return { member, score, olderThanWindow: score <= windowStartSeconds };
-          });
-          console.log(`Parsed scores and expiry check:`, scores);
-        }
-      } else if (allMembersResult && allMembersResult[0]) {
-        console.log(`Error getting all members:`, allMembersResult[0]);
+      
+      const members = Array.isArray(allMembersResult)
+        ? (allMembersResult[0] ? [] : (Array.isArray(allMembersResult[1]) ? allMembersResult[1] : []))
+        : (Array.isArray(allMembersResult) ? allMembersResult : []);
+        
+      console.log(`All members in window for ${userId}:${action}:`, members);
+      if (members && members.length > 0) {
+        const scores = members.map(member => {
+          const score = parseInt(member.split('-')[0], 10);
+          return { member, score, olderThanWindow: score <= windowStartSeconds };
+        });
+        console.log(`Parsed scores and expiry check:`, scores);
       }
     }
 
     // Calculate reset time
     let windowResetTimeSeconds: number;
     const zrangeResultTuple = checkResults[3];
-    const oldestRequestMembers = (zrangeResultTuple && !zrangeResultTuple[0] && Array.isArray(zrangeResultTuple[1])) 
-      ? zrangeResultTuple[1] as string[] : [];
+    const oldestRequestMembers = Array.isArray(zrangeResultTuple)
+      ? (zrangeResultTuple[0] ? [] : (Array.isArray(zrangeResultTuple[1]) ? zrangeResultTuple[1] : []))
+      : (Array.isArray(zrangeResultTuple) ? zrangeResultTuple : []);
     
     if (oldestRequestMembers.length > 0 && oldestRequestMembers[0]) {
       const oldestRequestTimestamp = parseInt(oldestRequestMembers[0].split('-')[0], 10);
@@ -222,12 +224,13 @@ export async function checkRateLimit(
     
     // Get the new daily count from the increment result
     const incrResultTuple = incrementResults[0];
-    const newDailyCount = (incrResultTuple && !incrResultTuple[0] && typeof incrResultTuple[1] === 'number')
-      ? incrResultTuple[1] : dailyCount + 1;
+    const newDailyCount = Array.isArray(incrResultTuple)
+      ? (incrResultTuple[0] ? dailyCount + 1 : (typeof incrResultTuple[1] === 'number' ? incrResultTuple[1] : dailyCount + 1))
+      : (typeof incrResultTuple === 'number' ? incrResultTuple : dailyCount + 1);
       
     // Check if zadd succeeded
     const zaddResultTuple = incrementResults[1];
-    if (zaddResultTuple && zaddResultTuple[0]) {
+    if (Array.isArray(zaddResultTuple) && zaddResultTuple[0]) {
       console.error(`ZADD error:`, zaddResultTuple[0]);
     }
     
