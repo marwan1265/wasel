@@ -36,15 +36,13 @@ export const Header: React.FC<HeaderProps> = ({ user, isGuestUser }) => {
   return (
     <header
       className={cn(
-        'absolute top-0 left-0 p-2 flex justify-between items-center z-10 backdrop-blur lg:backdrop-blur-none bg-background/80 lg:bg-transparent transition-[width] duration-200 ease-linear',
+        'absolute top-0 left-0 p-2 flex items-center z-10 backdrop-blur lg:backdrop-blur-none bg-background/80 lg:bg-transparent transition-[width] duration-200 ease-linear',
         open ? 'md:w-[calc(100%-var(--sidebar-width))]' : 'md:w-full',
         'w-full'
       )}
     >
-      {/* This div can be used for a logo or title on the left if needed */}
-      <div></div>
-
-      <div className="flex items-center gap-2">
+      {/* New Chat Button - positioned on the left */}
+      <div className="flex-1 flex justify-start">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -61,9 +59,12 @@ export const Header: React.FC<HeaderProps> = ({ user, isGuestUser }) => {
             <p>محادثة جديدة</p>
           </TooltipContent>
         </Tooltip>
-        
+      </div>
+
+      {/* Auth Buttons / User Menu - positioned on the right */}
+      <div className="flex items-center gap-2">
         {shouldShowGuestMenu ? (
-          <div className="flex items-center gap-2">
+          <>
             <Link href="/auth/login">
               <Button 
                 variant="ghost" 
@@ -83,7 +84,7 @@ export const Header: React.FC<HeaderProps> = ({ user, isGuestUser }) => {
               </Button>
             </Link>
             <GuestMenu />
-          </div>
+          </>
         ) : (
           <UserMenu user={user!} />
         )}
