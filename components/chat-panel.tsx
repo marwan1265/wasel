@@ -108,12 +108,13 @@ export function ChatPanel({
   return (
     <div
       className={cn(
-        'w-full bg-background group/form-container shrink-0',
-        messages.length > 0 ? 'sticky bottom-0 px-2 pb-4' : 'px-6'
+        'w-full bg-background group/form-container shrink-0 overflow-hidden',
+        messages.length > 0 ? 'sticky bottom-0 px-2 pb-4' : 'px-6',
+        'safe-area-bottom' // Ensure it respects safe areas on mobile
       )}
     >
       {messages.length === 0 && (
-        <div className="mb-10 flex flex-col items-center gap-4">
+        <div className="mb-10 flex flex-col items-center gap-4 overflow-hidden">
           <IconLogo className="size-24 text-muted-foreground" key="main-logo" />
           <p className="text-center text-3xl font-semibold">
             كيف يمكنني مساعدتك اليوم؟
@@ -128,7 +129,7 @@ export function ChatPanel({
           }
           handleSubmit(e)
         }}
-        className={cn('max-w-3xl w-full mx-auto relative')}
+        className={cn('max-w-3xl w-full mx-auto relative overflow-visible')}
       >
         {/* Add scroll-down button to ChatPanel right top - show when not auto scrolling */}
         {!isAutoScroll && messages.length > 0 && (

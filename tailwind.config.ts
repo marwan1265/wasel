@@ -152,6 +152,24 @@ const config = {
   				'var(--font-sans)',
                     ...fontFamily.sans
                 ]
+  		},
+  		height: {
+  			screen: '100vh',
+  			'screen-dynamic': '100dvh',
+  			'screen-small': '100svh',
+  			'screen-large': '100lvh'
+  		},
+  		minHeight: {
+  			screen: '100vh',
+  			'screen-dynamic': '100dvh',
+  			'screen-small': '100svh',
+  			'screen-large': '100lvh'
+  		},
+  		maxHeight: {
+  			screen: '100vh',
+  			'screen-dynamic': '100dvh',
+  			'screen-small': '100svh',
+  			'screen-large': '100lvh'
   		}
   	}
   },

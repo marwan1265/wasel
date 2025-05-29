@@ -329,7 +329,8 @@ export function Chat({
   return (
     <div
       className={cn(
-        'relative flex h-full min-w-0 flex-1 flex-col',
+        'relative flex h-full flex-1 flex-col overflow-hidden',
+        'max-h-screen max-h-screen-dynamic', // Ensure it doesn't exceed viewport
         messages.length === 0 ? 'items-center justify-center' : ''
       )}
       data-testid="full-chat"

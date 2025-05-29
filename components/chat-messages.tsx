@@ -125,10 +125,9 @@ ChatMessagesProps) {
       role="list"
       aria-roledescription="chat messages"
       className={cn(
-        'relative size-full pt-14',
-        messages.length > 0 ? 'flex-1 overflow-y-auto' : ''
+        'relative w-full pt-14',
+        messages.length > 0 ? 'flex-1 overflow-y-auto max-h-screen-dynamic' : 'h-full'
       )}
-      // style={{ contain: 'strict' }}
     >
       <div className="relative mx-auto w-full max-w-3xl px-4">
         {messages.map(message => (

@@ -45,7 +45,9 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   minimumScale: 1,
-  maximumScale: 1
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover'
 }
 
 export default async function RootLayout({
@@ -74,7 +76,7 @@ export default async function RootLayout({
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body
         className={cn(
-          'min-h-screen flex flex-col font-sans antialiased',
+          'h-full h-screen h-dvh flex flex-col font-sans antialiased overflow-hidden',
           fontArabic.variable
         )}
       >
@@ -87,9 +89,9 @@ export default async function RootLayout({
           <TooltipProvider>
             <SidebarProvider defaultOpen={!isGuestUser}>
               {!isGuestUser && <AppSidebar />}
-              <div className="flex flex-col flex-1">
+              <div className="flex flex-col flex-1 h-full min-h-0">
                 <Header user={user} isGuestUser={isGuestUser} />
-                <main className="flex flex-1 min-h-0">
+                <main className="flex flex-1 min-h-0 h-full overflow-hidden">
                   <ArtifactRoot>{children}</ArtifactRoot>
                 </main>
               </div>
