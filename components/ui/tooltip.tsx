@@ -1,13 +1,23 @@
 "use client"
 
-import * as React from "react"
-import * as TooltipPrimitive from "@radix-ui/react-tooltip"
-
+import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils/index"
+import * as TooltipPrimitive from "@radix-ui/react-tooltip"
+import * as React from "react"
 
 const TooltipProvider = TooltipPrimitive.Provider
 
-const Tooltip = TooltipPrimitive.Root
+// Mobile-aware Tooltip wrapper
+const Tooltip = ({ children, ...props }: React.ComponentProps<typeof TooltipPrimitive.Root>) => {
+  const isMobile = useIsMobile()
+  
+  // On mobile, just render children without tooltip functionality
+  if (isMobile) {
+    return <>{children}</>
+  }
+  
+  return <TooltipPrimitive.Root {...props}>{children}</TooltipPrimitive.Root>
+}
 
 const TooltipTrigger = TooltipPrimitive.Trigger
 
@@ -27,4 +37,5 @@ const TooltipContent = React.forwardRef<
 ))
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
+export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger }
+

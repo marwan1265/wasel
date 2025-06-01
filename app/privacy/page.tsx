@@ -8,13 +8,19 @@ export default function PrivacyPage() {
       <div className="flex-1 overflow-y-auto">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           <div className="mb-8">
-            <Link href="/">
-              <Button variant="ghost" className="mb-4">
-                <ArrowRight className="mr-2 h-4 w-4 rotate-180" />
-                العودة للرئيسية
-              </Button>
-            </Link>
-            <h1 className="text-4xl font-bold text-center mb-2">سياسة الخصوصية</h1>
+            <div className="flex justify-end mb-4 mt-12">
+              <Link href="/">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="rounded-full px-4 border-gray-300 hover:bg-gray-100 hover:border-gray-400 transition-colors duration-200"
+                >
+                  <ArrowRight className="mr-2 h-4 w-4 rotate-180" />
+                  العودة للرئيسية
+                </Button>
+              </Link>
+            </div>
+            <h1 className="text-4xl font-bold text-center mb-2">بيان الخصوصية</h1>
             <p className="text-muted-foreground text-center">آخر تحديث: {new Date().toLocaleDateString('ar-SA')}</p>
           </div>
 

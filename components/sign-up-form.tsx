@@ -39,13 +39,13 @@ export function SignUpForm({
     setError(null)
 
     if (password !== repeatPassword) {
-      setError('Passwords do not match')
+      setError('كلمات المرور غير متطابقة')
       setIsLoading(false)
       return
     }
 
     if (!turnstileToken) {
-      setError('Please complete the CAPTCHA challenge.')
+      setError('يرجى إكمال تحدي التحقق من الهوية.')
       setIsLoading(false)
       return
     }
@@ -62,7 +62,7 @@ export function SignUpForm({
       if (error) throw error
       router.push('/auth/sign-up-success')
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
+      setError(error instanceof Error ? error.message : 'حدث خطأ ما')
     } finally {
       setIsLoading(false)
     }
@@ -72,7 +72,7 @@ export function SignUpForm({
     console.error('Turnstile site key is not configured.')
     return (
       <div className="text-red-500 text-center p-4">
-        CAPTCHA configuration is missing. Please contact support.
+        إعدادات التحقق من الهوية مفقودة. يرجى التواصل مع الدعم الفني.
       </div>
     )
   }
@@ -86,17 +86,17 @@ export function SignUpForm({
         <CardHeader className="text-center">
           <CardTitle className="text-2xl flex flex-col items-center justify-center gap-4">
             <IconLogo className="size-12" />
-            Create an account
+            إنشاء حساب جديد
           </CardTitle>
           <CardDescription>
-            Enter your details below to get started
+            أدخل بياناتك أدناه للبدء
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignUp}>
             <div className="flex flex-col gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">البريد الإلكتروني</Label>
                 <Input
                   id="email"
                   type="email"
@@ -109,7 +109,7 @@ export function SignUpForm({
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">كلمة المرور</Label>
                 </div>
                 <Input
                   id="password"
@@ -123,7 +123,7 @@ export function SignUpForm({
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
-                  <Label htmlFor="repeat-password">Repeat Password</Label>
+                  <Label htmlFor="repeat-password">تأكيد كلمة المرور</Label>
                 </div>
                 <Input
                   id="repeat-password"
@@ -147,13 +147,13 @@ export function SignUpForm({
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
               <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken}>
-                {isLoading ? 'Creating account...' : 'Sign Up'}
+                {isLoading ? 'جاري إنشاء الحساب...' : 'إنشاء حساب'}
               </Button>
             </div>
             <div className="mt-6 text-center text-sm">
-              Already have an account?{' '}
+              لديك حساب بالفعل؟{' '}
               <Link href="/auth/login" className="underline underline-offset-4">
-                Sign In
+                تسجيل الدخول
               </Link>
             </div>
           </form>
@@ -161,7 +161,7 @@ export function SignUpForm({
       </Card>
       <div className="text-center text-xs text-muted-foreground">
         <Link href="/" className="hover:underline">
-          &larr; Back to Home
+          &larr; العودة للرئيسية
         </Link>
       </div>
     </div>

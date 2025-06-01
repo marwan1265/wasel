@@ -150,6 +150,15 @@
       height: 100dvh;
     }
     
+    /* Remove focus outlines on mobile for better touch interaction */
+    button:focus,
+    button:focus-visible,
+    [role="button"]:focus,
+    [role="button"]:focus-visible {
+      outline: none !important;
+      box-shadow: none !important;
+    }
+    
     /* Ensure chat containers don't overflow */
     [data-testid="full-chat"] {
       max-height: 100vh;
