@@ -162,5 +162,24 @@
       max-width: 100vw;
       box-sizing: border-box;
     }
+    
+    /* Fix mobile layout duplication issues */
+    [data-testid="full-chat"] {
+      display: flex !important;
+      flex-direction: column !important;
+      height: 100% !important;
+      min-height: 0 !important;
+    }
+    
+    /* Ensure proper mobile chat panel layout */
+    .group\/form-container {
+      position: relative !important;
+      width: 100% !important;
+    }
+    
+    /* Prevent content duplication on mobile */
+    .safe-area-bottom {
+      position: relative;
+    }
   }
 }

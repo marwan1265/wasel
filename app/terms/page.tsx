@@ -4,7 +4,7 @@ import Link from 'next/link'
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-y-auto">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">
           <Link href="/">
@@ -17,7 +17,7 @@ export default function TermsPage() {
           <p className="text-muted-foreground text-center">آخر تحديث: {new Date().toLocaleDateString('ar-SA')}</p>
         </div>
 
-        <div className="prose prose-lg max-w-none space-y-6 text-right" dir="rtl">
+        <div className="prose prose-lg max-w-none space-y-6 text-right pb-8" dir="rtl">
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. قبول الشروط</h2>
             <p>
