@@ -52,15 +52,18 @@ export function ChatArtifactContainer({
         )}
       </div>
       
-      {/* Stable container for children to prevent remounting */}
-      <div className="contents">
-        {/* Desktop: Resizable panels - Always rendered, hidden on mobile */}
+      {/* Conditional rendering based on mobile state to prevent duplication */}
+      {isMobile ? (
+        /* Mobile: full-width chat + drawer */
+        <div className="flex-1 h-full overflow-hidden flex">
+          {children}
+          <InspectorDrawer />
+        </div>
+      ) : (
+        /* Desktop: Resizable panels */
         <ResizablePanelGroup
           direction="horizontal"
-          className={cn(
-            "flex flex-1 min-w-0 h-full",
-            isMobile ? "hidden" : "flex"
-          )}
+          className="flex flex-1 min-w-0 h-full"
         >
           <ResizablePanel
             className={cn(
@@ -87,17 +90,7 @@ export function ChatArtifactContainer({
             </>
           )}
         </ResizablePanelGroup>
-
-        {/* Mobile: full-width chat + drawer - Always rendered, hidden on desktop */}
-        <div className={cn(
-          "flex-1 h-full overflow-hidden",
-          isMobile ? "flex" : "hidden"
-        )}>
-          {children}
-          {/* InspectorDrawer handles its own mobile detection internally */}
-          <InspectorDrawer />
-        </div>
-      </div>
+      )}
     </div>
   )
 }
