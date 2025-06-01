@@ -4,6 +4,7 @@ import { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
 import { Message } from 'ai'
 import { ArrowUp, ChevronDown, Square } from 'lucide-react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import Textarea from 'react-textarea-autosize'
@@ -218,6 +219,32 @@ export function ChatPanel({
             </div>
           </div>
         </div>
+
+        {/* Terms and Privacy Policy Links */}
+        {messages.length === 0 && (
+          <div className="mt-3 text-center">
+            <p className="text-xs text-muted-foreground" dir="rtl">
+              من خلال مراسلة واصل، فإنك توافق على{' '}
+              <Link href="/terms" className="text-primary hover:underline">
+                شروط الخدمة
+              </Link>
+              {' '}و{' '}
+              <Link href="/privacy" className="text-primary hover:underline">
+                بيان الخصوصية
+              </Link>
+              {' '}الخاصة بنا.
+            </p>
+          </div>
+        )}
+
+        {/* AI Disclaimer - shown after messages are sent */}
+        {messages.length > 0 && (
+          <div className="mt-2 text-center">
+            <p className="text-xs text-muted-foreground" dir="rtl">
+              قد يرتكب الذكاء الاصطناعي أخطاء. يرجى التحقق من المعلومات الهامة.
+            </p>
+          </div>
+        )}
 
         {messages.length === 0 && (
           <EmptyScreen
