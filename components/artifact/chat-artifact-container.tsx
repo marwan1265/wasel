@@ -13,17 +13,28 @@ import { useMediaQuery } from '@/lib/hooks/use-media-query'
 import { cn } from '@/lib/utils'
 import React, { useEffect, useState } from 'react'
 import { useArtifact } from './artifact-context'
+
 export function ChatArtifactContainer({
   children
 }: {
   children: React.ReactNode
 }) {
   const { state } = useArtifact()
-  const isMobile = useMediaQuery('(max-width: 767px)') // Below md breakpoint
+  const isMobileQuery = useMediaQuery('(max-width: 767px)') // Below md breakpoint
+  const [isMobile, setIsMobile] = useState(isMobileQuery)
   const [renderPanel, setRenderPanel] = useState(state.isOpen)
   const { open, openMobile, isMobile: isMobileSidebar } = useSidebar()
   const { isGuest, isUnknown } = useUserTier()
   const shouldHideSidebar = isGuest || isUnknown
+
+  // Debounce mobile state changes to prevent rapid layout switching
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsMobile(isMobileQuery)
+    }, 100) // Small delay to prevent rapid changes during orientation
+
+    return () => clearTimeout(timer)
+  }, [isMobileQuery])
 
   useEffect(() => {
     if (state.isOpen) {
@@ -40,11 +51,16 @@ export function ChatArtifactContainer({
           <SidebarTrigger className="animate-fade-in" />
         )}
       </div>
-      {/* Desktop: Resizable panels (Do not render on mobile) */}
-      {!isMobile && (
+      
+      {/* Stable container for children to prevent remounting */}
+      <div className="contents">
+        {/* Desktop: Resizable panels - Always rendered, hidden on mobile */}
         <ResizablePanelGroup
           direction="horizontal"
-          className="flex flex-1 min-w-0 h-full"
+          className={cn(
+            "flex flex-1 min-w-0 h-full",
+            isMobile ? "hidden" : "flex"
+          )}
         >
           <ResizablePanel
             className={cn(
@@ -71,16 +87,17 @@ export function ChatArtifactContainer({
             </>
           )}
         </ResizablePanelGroup>
-      )}
 
-      {/* Mobile: full-width chat + drawer (Do not render on desktop) */}
-      {isMobile && (
-        <div className="flex-1 h-full overflow-hidden">
+        {/* Mobile: full-width chat + drawer - Always rendered, hidden on desktop */}
+        <div className={cn(
+          "flex-1 h-full overflow-hidden",
+          isMobile ? "flex" : "hidden"
+        )}>
           {children}
-          {/* ArtifactDrawer checks isMobile internally, no double check needed */}
+          {/* InspectorDrawer handles its own mobile detection internally */}
           <InspectorDrawer />
         </div>
-      )}
+      </div>
     </div>
   )
 }

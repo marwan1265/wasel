@@ -7,5 +7,5 @@ export default async function Page() {
   // const id = generateId()
   const id = uuidv4()
   const models = await getModels()
-  return <Chat id={id} models={models} />
+  return <Chat key={id} id={id} models={models} />
 }

@@ -32,6 +32,7 @@ export default async function SharePage(props: {
   const models = await getModels()
   return (
     <Chat
+      key={chat.id}
       id={chat.id}
       savedMessages={convertToUIMessages(chat.messages)}
       models={models}
