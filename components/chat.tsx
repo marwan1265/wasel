@@ -332,7 +332,7 @@ export function Chat({
       className={cn(
         'relative flex h-full flex-1 flex-col overflow-hidden',
         'max-h-screen max-h-screen-dynamic', // Ensure it doesn't exceed viewport
-        messages.length === 0 ? 'items-center justify-center' : ''
+        messages.length === 0 ? 'items-center justify-center pt-16 md:pt-0' : ''
       )}
       data-testid="full-chat"
     >
