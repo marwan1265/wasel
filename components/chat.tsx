@@ -150,6 +150,7 @@ export function Chat({
 
   useEffect(() => {
     setMessages(savedMessages)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   // Debounced function to handle URL change and history update
