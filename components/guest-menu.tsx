@@ -38,7 +38,7 @@ export default function GuestMenu() {
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <Palette className="mr-3 ml-4 h-4 w-4" />
-            <span>السمة</span>
+            <span>المظهر</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <ThemeMenuItems />
