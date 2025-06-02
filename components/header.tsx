@@ -8,7 +8,7 @@ import { User } from '@supabase/supabase-js'
 import { MessageCirclePlus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import GuestMenu from './guest-menu'
 import { Button } from './ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
@@ -23,6 +23,19 @@ export const Header: React.FC<HeaderProps> = ({ user, isGuestUser }) => {
   const { open } = useSidebar()
   const router = useRouter()
   const { setMessages } = useChat({ id: CHAT_ID })
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Check if we're on mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   const handleNewChat = () => {
     setMessages([])
@@ -32,6 +45,18 @@ export const Header: React.FC<HeaderProps> = ({ user, isGuestUser }) => {
 
   // Use server-side guest determination to eliminate flickering
   const shouldShowGuestMenu = !user || isGuestUser
+
+  const newChatButton = (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={handleNewChat}
+      className="shrink-0 rounded-full group hover:bg-accent"
+      type="button"
+    >
+      <MessageCirclePlus className="size-4 group-hover:rotate-12 transition-all" />
+    </Button>
+  )
 
   return (
     <header
@@ -71,22 +96,19 @@ export const Header: React.FC<HeaderProps> = ({ user, isGuestUser }) => {
 
       {/* Right side - New Chat Button and Settings/User Menu */}
       <div className="flex items-center gap-2">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleNewChat}
-              className="shrink-0 rounded-full group hover:bg-accent"
-              type="button"
-            >
-              <MessageCirclePlus className="size-4 group-hover:rotate-12 transition-all" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>محادثة جديدة</p>
-          </TooltipContent>
-        </Tooltip>
+        {/* Conditionally wrap with tooltip only on desktop */}
+        {!isMobile ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {newChatButton}
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>محادثة جديدة</p>
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          newChatButton
+        )}
         
         {shouldShowGuestMenu ? <GuestMenu /> : <UserMenu user={user!} />}
       </div>

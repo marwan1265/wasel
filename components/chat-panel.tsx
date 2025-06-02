@@ -51,6 +51,19 @@ export function ChatPanel({
   const [isComposing, setIsComposing] = useState(false) // Composition state
   const [enterDisabled, setEnterDisabled] = useState(false) // Disable Enter after composition ends
   const { close: closeArtifact } = useArtifact()
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Check if we're on mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   const handleCompositionStart = () => setIsComposing(true)
 
@@ -106,6 +119,34 @@ export function ChatPanel({
     }
   }
 
+  const scrollButton = (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon"
+      className="absolute -top-10 right-4 z-20 size-8 rounded-full shadow-md"
+      onClick={handleScrollToBottom}
+    >
+      <ChevronDown size={16} />
+    </Button>
+  )
+
+  const submitButton = (
+    <Button
+      type={isLoading ? 'button' : 'submit'}
+      size={'icon'}
+      variant={'outline'}
+      className={cn(isLoading && 'animate-pulse', 'rounded-full hover:border-foreground')}
+      disabled={
+        (input.length === 0 && !isLoading) ||
+        isToolInvocationInProgress()
+      }
+      onClick={isLoading ? stop : undefined}
+    >
+      {isLoading ? <Square size={20} /> : <ArrowUp size={20} />}
+    </Button>
+  )
+
   return (
     <div
       className={cn(
@@ -134,22 +175,20 @@ export function ChatPanel({
       >
         {/* Add scroll-down button to ChatPanel right top - show when not auto scrolling */}
         {!isAutoScroll && messages.length > 0 && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="absolute -top-10 right-4 z-20 size-8 rounded-full shadow-md"
-                onClick={handleScrollToBottom}
-              >
-                <ChevronDown size={16} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>الأسفل</p>
-            </TooltipContent>
-          </Tooltip>
+          <>
+            {!isMobile ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {scrollButton}
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>الأسفل</p>
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              scrollButton
+            )}
+          </>
         )}
 
         <div className="relative flex flex-col w-full gap-2 bg-muted rounded-3xl border border-input">
@@ -196,26 +235,18 @@ export function ChatPanel({
               <SearchModeToggle />
             </div>
             <div className="flex items-center gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type={isLoading ? 'button' : 'submit'}
-                    size={'icon'}
-                    variant={'outline'}
-                    className={cn(isLoading && 'animate-pulse', 'rounded-full hover:border-foreground')}
-                    disabled={
-                      (input.length === 0 && !isLoading) ||
-                      isToolInvocationInProgress()
-                    }
-                    onClick={isLoading ? stop : undefined}
-                  >
-                    {isLoading ? <Square size={20} /> : <ArrowUp size={20} />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{isLoading ? 'إيقاف' : 'إرسال'}</p>
-                </TooltipContent>
-              </Tooltip>
+              {!isMobile ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    {submitButton}
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{isLoading ? 'إيقاف' : 'إرسال'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                submitButton
+              )}
             </div>
           </div>
         </div>

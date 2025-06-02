@@ -17,6 +17,7 @@ import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
 import { Link2, LogOut, Palette, User as UserIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { ExternalLinkItems } from './external-link-items'
 import { ManageAccountDialog } from './manage-account-dialog'
 import { ThemeMenuItems } from './theme-menu-items'
@@ -28,10 +29,22 @@ interface UserMenuProps {
 
 export default function UserMenu({ user }: UserMenuProps) {
   const router = useRouter()
+  const [isMobile, setIsMobile] = useState(false)
   const userName =
     user.user_metadata?.full_name || user.user_metadata?.name || 'مستخدم'
   const avatarUrl =
     user.user_metadata?.avatar_url || user.user_metadata?.picture
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   const getInitials = (name: string, email: string | undefined) => {
     if (name && name !== 'مستخدم') {
@@ -54,23 +67,32 @@ export default function UserMenu({ user }: UserMenuProps) {
     router.refresh()
   }
 
+  const triggerButton = (
+    <DropdownMenuTrigger asChild>
+      <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={avatarUrl} alt={userName} />
+          <AvatarFallback>{getInitials(userName, user.email)}</AvatarFallback>
+        </Avatar>
+      </Button>
+    </DropdownMenuTrigger>
+  )
+
   return (
     <DropdownMenu>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={avatarUrl} alt={userName} />
-                <AvatarFallback>{getInitials(userName, user.email)}</AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>الإعدادات</p>
-        </TooltipContent>
-      </Tooltip>
+      {!isMobile ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {triggerButton}
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>الإعدادات</p>
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        triggerButton
+      )}
+      
       <DropdownMenuContent className="w-60" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
