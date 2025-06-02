@@ -79,30 +79,54 @@ export function DeepthinkToggle() {
   return (
     <>
       <div className="relative">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={toggleDeepthinkMode}
-              className={cn(
-                'flex items-center gap-1 px-3 rounded-full transition-colors',
-                // Remove focus outline on mobile
-                'focus-visible:outline-none focus-visible:ring-0 md:focus-visible:outline-2 md:focus-visible:ring-2 md:focus-visible:ring-ring md:focus-visible:ring-offset-2',
-                isDeepthinkMode 
-                  ? 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100/90 hover:text-black dark:hover:text-black' 
-                  : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground hover:border-foreground'
-              )}
-            >
-              <DeepResearchIcon className="size-4" />
-              <span className="text-xs">بحث عميق</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>بحث وتفكير متقدم</p>
-          </TooltipContent>
-        </Tooltip>
+        {/* Mobile: Button without tooltip */}
+        <div className="md:hidden">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={toggleDeepthinkMode}
+            className={cn(
+              'flex items-center gap-1 px-3 rounded-full transition-colors',
+              // Remove focus outline on mobile
+              'focus-visible:outline-none focus-visible:ring-0',
+              isDeepthinkMode 
+                ? 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100/90 hover:text-black dark:hover:text-black' 
+                : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground hover:border-foreground'
+            )}
+          >
+            <DeepResearchIcon className="size-4" />
+            <span className="text-xs">بحث عميق</span>
+          </Button>
+        </div>
+
+        {/* Desktop: Button with tooltip */}
+        <div className="hidden md:block">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={toggleDeepthinkMode}
+                className={cn(
+                  'flex items-center gap-1 px-3 rounded-full transition-colors',
+                  // Focus outline for desktop
+                  'focus-visible:outline-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                  isDeepthinkMode 
+                    ? 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100/90 hover:text-black dark:hover:text-black' 
+                    : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground hover:border-foreground'
+                )}
+              >
+                <DeepResearchIcon className="size-4" />
+                <span className="text-xs">بحث عميق</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>بحث وتفكير متقدم</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
 
         <UpgradeModal
           isOpen={showUpgradeModal}
