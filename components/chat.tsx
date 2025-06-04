@@ -1,10 +1,10 @@
 'use client'
 
+import { useEnhancedChat as useChat } from '@/hooks/use-enhanced-chat'
 import { CHAT_ID } from '@/lib/constants'
 import { useAutoScroll } from '@/lib/hooks/use-auto-scroll'
 import { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
-import { useChat } from '@ai-sdk/react'
 import { ChatRequestOptions } from 'ai'
 import { Message } from 'ai/react'
 import { useRouter } from 'next/navigation'
@@ -35,32 +35,19 @@ export function Chat({
   // Track partial response text for manual stops
   const partialResponseRef = useRef<string>('')
 
-  const {
-    messages,
-    input,
-    handleInputChange,
-    handleSubmit: originalHandleSubmit,
-    status,
-    setMessages,
-    stop: originalStop,
-    append,
-    data,
-    setData,
-    addToolResult,
-    reload
-  } = useChat({
+  const chatHookResult = useChat({
     initialMessages: savedMessages,
     id: CHAT_ID,
     body: {
       id
     },
-    onFinish: (message) => {
+    onFinish: (message: any) => {
       // Response completed normally
       console.log('[onFinish] Response completed normally')
       isGeneratingRef.current = false
       partialResponseRef.current = ''
     },
-    onError: error => {
+    onError: (error: any) => {
       console.error('[onError] Chat error:', error)
       isGeneratingRef.current = false
       partialResponseRef.current = ''
@@ -105,9 +92,26 @@ export function Chat({
       // Update chat history so the failed chat appears in sidebar
       handleUrlAndHistoryUpdate()
     },
-    sendExtraMessageFields: false,
-    experimental_throttle: 100
+    sendExtraMessageFields: false
+    // Note: experimental_throttle removed as it may not be available in current version
   })
+
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit: originalHandleSubmit,
+    status,
+    setMessages,
+    stop: originalStop,
+    append,
+    data,
+    setData,
+    reload
+  } = chatHookResult
+
+  // Safely access addToolResult if it exists
+  const addToolResult = (chatHookResult as any).addToolResult
 
   const isLoading = status === 'submitted' || status === 'streaming'
 

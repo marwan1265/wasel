@@ -141,7 +141,7 @@ export function SignUpForm({
                   onSuccess={setTurnstileToken}
                   options={{
                     theme: 'light',
-                    appearance: 'execute'
+                    appearance: 'always'
                   }}
                 />
               </div>

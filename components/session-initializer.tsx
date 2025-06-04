@@ -16,6 +16,17 @@ export function SessionInitializer() {
 
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
+  // Helper function to dispatch auth completion event with success/failure info
+  const dispatchAuthComplete = useCallback((success: boolean, error?: string, user?: User | null) => {
+    window.dispatchEvent(new CustomEvent('auth-complete', {
+      detail: {
+        success,
+        error: error || null,
+        user: user || null
+      }
+    }));
+  }, []);
+
   const attemptAnonymousSignIn = useCallback(async (token: string) => {
     console.log('Attempting anonymous sign-in with Turnstile token...');
     setIsLoading(true);
@@ -29,23 +40,28 @@ export function SessionInitializer() {
       if (error) {
         console.error('Error during anonymous sign-in:', error.message);
         sessionStorage.setItem(SESSION_ANONYMOUS_ATTEMPTED_KEY, 'true'); // Mark as attempted even on error to prevent loops
+        dispatchAuthComplete(false, error.message);
       } else if (data?.user) {
         console.log('Successfully signed in anonymously:', data.user.id);
         setCurrentUser(data.user);
         sessionStorage.setItem(SESSION_ANONYMOUS_ATTEMPTED_KEY, 'true');
+        dispatchAuthComplete(true, undefined, data.user);
       } else {
         console.warn('Anonymous sign-in did not return a user or error.');
         sessionStorage.setItem(SESSION_ANONYMOUS_ATTEMPTED_KEY, 'true');
+        dispatchAuthComplete(false, 'No user returned from sign-in');
       }
     } catch (e) {
         console.error('Exception during anonymous sign-in:', e);
         sessionStorage.setItem(SESSION_ANONYMOUS_ATTEMPTED_KEY, 'true');
+        const errorMessage = e instanceof Error ? e.message : 'Unknown error during sign-in';
+        dispatchAuthComplete(false, errorMessage);
     } finally {
       setIsLoading(false);
       setShowTurnstile(false); // Hide Turnstile after attempt
       setTurnstileToken(null); // Reset token
     }
-  }, [supabase]);
+  }, [supabase, dispatchAuthComplete]);
 
   useEffect(() => {
     const checkUserSession = async () => {
@@ -56,6 +72,9 @@ export function SessionInitializer() {
         // Potentially show Turnstile if we can't even get a session and want to try anon sign in
         if (!sessionStorage.getItem(SESSION_ANONYMOUS_ATTEMPTED_KEY)) {
             setShowTurnstile(true);
+        } else {
+          // Auth already attempted but failed
+          dispatchAuthComplete(false, sessionError.message);
         }
         return;
       }
@@ -64,6 +83,8 @@ export function SessionInitializer() {
         setCurrentUser(session.user);
         console.log('User session found:', session.user.id);
         sessionStorage.removeItem(SESSION_ANONYMOUS_ATTEMPTED_KEY); // Clear attempt flag if user is found
+        // User already authenticated, mark as successful
+        dispatchAuthComplete(true, undefined, session.user);
       } else {
         // No active session, check if we've already tried anonymous sign-in in this browser session
         if (!sessionStorage.getItem(SESSION_ANONYMOUS_ATTEMPTED_KEY)) {
@@ -71,6 +92,8 @@ export function SessionInitializer() {
           setShowTurnstile(true); // Show Turnstile to get a token
         } else {
           console.log('Anonymous sign-in already attempted in this session.');
+          // Auth already attempted but we have no user - consider it failed
+          dispatchAuthComplete(false, 'Anonymous sign-in was attempted but no session exists');
         }
       }
     };
@@ -78,6 +101,8 @@ export function SessionInitializer() {
     if (!turnstileSiteKey) {
       console.error('Turnstile site key is not configured. Cannot attempt anonymous sign-in.');
       setIsLoading(false);
+      // No auth possible, mark as failed
+      dispatchAuthComplete(false, 'Turnstile site key not configured');
       return;
     }
     checkUserSession();
@@ -99,7 +124,7 @@ export function SessionInitializer() {
         authListener?.subscription?.unsubscribe();
     };
 
-  }, [supabase, turnstileSiteKey]);
+  }, [supabase, turnstileSiteKey, dispatchAuthComplete]);
 
   useEffect(() => {
     if (turnstileToken && showTurnstile) {
@@ -118,30 +143,37 @@ export function SessionInitializer() {
   // Using 'execute' on a hidden button or 'interaction-only' might be alternatives.
   if (showTurnstile && !currentUser) {
     return (
-      <div className="fixed bottom-4 right-4 z-50 bg-white p-2 shadow-lg rounded border border-gray-300">
-        <p className="text-xs text-gray-600 mb-1">Verifying session...</p>
-        <Turnstile
-          siteKey={turnstileSiteKey}
-          onSuccess={(token) => {
-            console.log('Turnstile token obtained for anonymous sign-in.');
-            setTurnstileToken(token);
-          }}
-          onError={() => {
-            console.error('Turnstile challenge failed for anonymous sign-in.');
-            sessionStorage.setItem(SESSION_ANONYMOUS_ATTEMPTED_KEY, 'true'); // Mark as attempted to prevent loops
-            setShowTurnstile(false); // Hide on error to prevent user being stuck
-          }}
-          onExpire={() => {
-            console.log('Turnstile token expired.');
-            setTurnstileToken(null);
-            // Optionally re-show or re-attempt based on your strategy
-          }}
-          options={{
-            theme: 'light',
-            // appearance: 'interaction-only', // Or 'execute' if you have a trigger
-            // For a truly seamless experience, an invisible Turnstile is ideal but needs careful triggering.
-          }}
-        />
+      <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
+        <div className="bg-white p-4 rounded-lg shadow-xl border border-gray-200 max-w-sm mx-4">
+          <div className="text-center">
+            <p className="text-sm text-gray-700 mb-3">Security verification required</p>
+            <p className="text-xs text-gray-500 mb-4">This helps us ensure you're human</p>
+          </div>
+          <Turnstile
+            siteKey={turnstileSiteKey}
+            onSuccess={(token) => {
+              console.log('Turnstile token obtained for anonymous sign-in.');
+              setTurnstileToken(token);
+            }}
+            onError={() => {
+              console.error('Turnstile challenge failed for anonymous sign-in.');
+              sessionStorage.setItem(SESSION_ANONYMOUS_ATTEMPTED_KEY, 'true'); // Mark as attempted to prevent loops
+              setShowTurnstile(false); // Hide on error to prevent user being stuck
+              // Dispatch auth completion event on error too
+              dispatchAuthComplete(false, 'Turnstile challenge failed');
+            }}
+            onExpire={() => {
+              console.log('Turnstile token expired.');
+              setTurnstileToken(null);
+              // Optionally re-show or re-attempt based on your strategy
+            }}
+            options={{
+              theme: 'light',
+              // appearance: 'interaction-only', // Or 'execute' if you have a trigger
+              // For a truly seamless experience, an invisible Turnstile is ideal but needs careful triggering.
+            }}
+          />
+        </div>
       </div>
     );
   }
