@@ -10,7 +10,7 @@ interface UpgradeModalProps {
   isOpen: boolean
   onClose: () => void
   feature: 'deepthink' | 'general'
-  userTier: 'guest' | 'free'
+  userTier: 'guest' | 'free' | 'unknown'
 }
 
 export function UpgradeModal({ isOpen, onClose, feature, userTier }: UpgradeModalProps) {
@@ -34,18 +34,24 @@ export function UpgradeModal({ isOpen, onClose, feature, userTier }: UpgradeModa
   const featureConfig = {
     deepthink: {
       icon: DeepResearchIcon,
-      title: 'ترقي لواصل برو',
-      description: 'فعّل التفكير العميق للحصول على إجابات أكثر ذكاءً ودقة',
-      features: [
+      title: (userTier === 'guest' || userTier === 'unknown') ? 'سجل دخولك للمتابعة' : 'ترقي لواصل برو',
+      description: (userTier === 'guest' || userTier === 'unknown') ? 'سجل دخولك أو أنشئ حساب جديد للوصول للتفكير العميق وميزات أخرى' : 'فعّل التفكير العميق للحصول على إجابات أكثر ذكاءً ودقة',
+      features: (userTier === 'guest' || userTier === 'unknown') ? [
+        'وصول للتفكير العميق',
+        'ميزات متقدمة أخرى'
+      ] : [
         'تحليل عميق ومتقدم',
         'إجابات أكثر دقة وتفصيلاً'
       ]
     },
     general: {
       icon: Sparkles,
-      title: 'ترقي لواصل برو',
-      description: 'احصل على إمكانيات أكثر تقدماً مع واصل برو',
-      features: [
+      title: (userTier === 'guest' || userTier === 'unknown') ? 'سجل دخولك للمتابعة' : 'ترقي لواصل برو',
+      description: (userTier === 'guest' || userTier === 'unknown') ? 'سجل دخولك أو أنشئ حساب جديد للوصول لميزات متقدمة' : 'احصل على إمكانيات أكثر تقدماً مع واصل برو',
+      features: (userTier === 'guest' || userTier === 'unknown') ? [
+        'وصول لميزات متقدمة',
+        'تجربة محسنة'
+      ] : [
         'رسائل أكثر يومياً',
         'وصول للنماذج المتقدمة'
       ]
@@ -127,6 +133,11 @@ export function UpgradeModal({ isOpen, onClose, feature, userTier }: UpgradeModa
     onClose()
   }
 
+  const handleSignUp = () => {
+    router.push('/auth/sign-up')
+    onClose()
+  }
+
   if (!isOpen) return null
 
   // Render mobile version
@@ -172,21 +183,30 @@ export function UpgradeModal({ isOpen, onClose, feature, userTier }: UpgradeModa
           {/* Content */}
           <div className="p-6">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
-              ترقي لواصل برو
+              {config.title}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
-              احصل على إجابات أكثر ذكاءً، تحليل عميق، وميزات متقدمة من خلال تسجيل الدخول.
+              {config.description}
             </p>
 
             {/* Buttons */}
             <div className="space-y-3">
-              {userTier === 'guest' ? (
-                <Button 
-                  onClick={handleSignIn} 
-                  className="w-full h-11 bg-gray-900 hover:bg-gray-800 text-white dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200 rounded-lg font-medium text-sm"
-                >
-                  تسجيل الدخول
-                </Button>
+              {(userTier === 'guest' || userTier === 'unknown') ? (
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={handleSignIn} 
+                    className="flex-1 h-11 rounded-full px-4 bg-black text-white hover:bg-gray-800 transition-colors duration-200"
+                  >
+                    تسجيل الدخول
+                  </Button>
+                  <Button 
+                    onClick={handleSignUp} 
+                    variant="outline"
+                    className="flex-1 h-11 rounded-full px-4 border-gray-300 hover:bg-gray-100 hover:border-gray-400 transition-colors duration-200"
+                  >
+                    إنشاء حساب
+                  </Button>
+                </div>
               ) : (
                 <Button 
                   onClick={handleUpgrade} 
@@ -268,21 +288,30 @@ export function UpgradeModal({ isOpen, onClose, feature, userTier }: UpgradeModa
         {/* Content */}
         <div className="p-3">
           <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1.5">
-            ترقي لواصل برو
+            {config.title}
           </h3>
           <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 leading-relaxed">
-            احصل على إجابات أكثر ذكاءً، تحليل عميق، وميزات متقدمة من خلال تسجيل الدخول.
+            {config.description}
           </p>
 
           {/* Buttons */}
           <div className="space-y-1.5">
-            {userTier === 'guest' ? (
-              <Button 
-                onClick={handleSignIn} 
-                className="w-full h-7 bg-gray-900 hover:bg-gray-800 text-white dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200 rounded-md font-medium text-xs"
-              >
-                تسجيل الدخول
-              </Button>
+            {(userTier === 'guest' || userTier === 'unknown') ? (
+              <div className="flex gap-1.5">
+                <Button 
+                  onClick={handleSignIn} 
+                  className="flex-1 h-7 rounded-full bg-black text-white hover:bg-gray-800 transition-colors duration-200 font-medium text-xs"
+                >
+                  تسجيل الدخول
+                </Button>
+                <Button 
+                  onClick={handleSignUp} 
+                  variant="outline"
+                  className="flex-1 h-7 rounded-full border-gray-300 hover:bg-gray-100 hover:border-gray-400 transition-colors duration-200 font-medium text-xs"
+                >
+                  إنشاء حساب
+                </Button>
+              </div>
             ) : (
               <Button 
                 onClick={handleUpgrade} 

@@ -13,7 +13,7 @@ export function DeepthinkToggle() {
   const [isDeepthinkMode, setIsDeepthinkMode] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const { tier, isPro, isLoading } = useUserTier()
+  const { tier, isPro, isFree, isGuest, isUnknown, isLoading } = useUserTier()
 
   // Check if we're on mobile
   useEffect(() => {
@@ -33,12 +33,12 @@ export function DeepthinkToggle() {
       const savedMode = getCookie('deepthink-mode')
       console.log('Initial deepthink-mode cookie:', savedMode)
       if (savedMode !== null) {
-        // Only allow deepthink mode if user is pro
-        const shouldEnable = savedMode === 'true' && isPro
+        // Allow deepthink mode for both free and pro users
+        const shouldEnable = savedMode === 'true' && (isPro || isFree)
         setIsDeepthinkMode(shouldEnable)
         
-        // If user had deepthink enabled but is no longer pro, disable it
-        if (savedMode === 'true' && !isPro && !isLoading) {
+        // If user had deepthink enabled but is now guest or unknown, disable it
+        if (savedMode === 'true' && (isGuest || isUnknown) && !isLoading) {
           setCookie('deepthink-mode', 'false')
           // Reset to default model
           const defaultModel = { id: 'deepseek-chat', name: 'DeepSeek V3 (Default)', provider: 'DeepSeek', providerId: 'deepseek', enabled: true, toolCallType: 'manual' }
@@ -55,17 +55,20 @@ export function DeepthinkToggle() {
     } catch (error) {
       console.error('Error accessing cookies:', error)
     }
-  }, [isPro, isLoading])
+  }, [isPro, isFree, isGuest, isUnknown, isLoading])
 
   const toggleDeepthinkMode = () => {
     try {
       const newState = !isDeepthinkMode
 
       // Check if user is trying to enable deepthink mode
-      if (newState && !isPro) {
-        // Show upgrade modal for non-pro users
-        setShowUpgradeModal(true)
-        return
+      if (newState) {
+        // Show login/signup modal only for guest or unknown users
+        if (isGuest || isUnknown) {
+          setShowUpgradeModal(true)
+          return
+        }
+        // Free and pro users can use deepthink mode directly
       }
 
       setIsDeepthinkMode(newState)
@@ -129,7 +132,7 @@ export function DeepthinkToggle() {
           isOpen={showUpgradeModal}
           onClose={() => setShowUpgradeModal(false)}
           feature="deepthink"
-          userTier={tier === 'guest' ? 'guest' : 'free'}
+          userTier={tier === 'guest' ? 'guest' : tier === 'unknown' ? 'unknown' : 'free'}
         />
       </div>
     </>
