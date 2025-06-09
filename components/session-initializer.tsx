@@ -145,10 +145,6 @@ export function SessionInitializer() {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
         <div className="bg-white p-4 rounded-lg shadow-xl border border-gray-200 max-w-sm mx-4">
-          <div className="text-center">
-            <p className="text-sm text-gray-700 mb-3">Security verification required</p>
-            <p className="text-xs text-gray-500 mb-4">This helps us ensure you're human</p>
-          </div>
           <Turnstile
             siteKey={turnstileSiteKey}
             onSuccess={(token) => {

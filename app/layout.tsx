@@ -87,18 +87,19 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <TooltipProvider>
-            <SidebarProvider defaultOpen={!isGuestUser}>
-              {!isGuestUser && <AppSidebar />}
-              <div className="flex flex-col flex-1 h-full min-h-0">
-                <Header user={user} isGuestUser={isGuestUser} />
-                <main className="flex flex-1 min-h-0 h-full overflow-hidden">
-                  <ArtifactRoot>{children}</ArtifactRoot>
-                </main>
-              </div>
-            </SidebarProvider>
+            <SessionInitializerWithContext>
+              <SidebarProvider defaultOpen={!isGuestUser}>
+                {!isGuestUser && <AppSidebar />}
+                <div className="flex flex-col flex-1 h-full min-h-0">
+                  <Header user={user} isGuestUser={isGuestUser} />
+                  <main className="flex flex-1 min-h-0 h-full overflow-hidden">
+                    <ArtifactRoot>{children}</ArtifactRoot>
+                  </main>
+                </div>
+              </SidebarProvider>
+            </SessionInitializerWithContext>
             <Toaster />
             <Analytics />
-            <SessionInitializerWithContext />
           </TooltipProvider>
         </ThemeProvider>
       </body>

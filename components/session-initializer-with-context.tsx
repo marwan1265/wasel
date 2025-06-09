@@ -8,7 +8,7 @@ import { SessionInitializer } from './session-initializer'
 
 const SESSION_ANONYMOUS_ATTEMPTED_KEY = 'morphic_anonymous_signIn_attempted'
 
-export function SessionInitializerWithContext() {
+export function SessionInitializerWithContext({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -139,6 +139,7 @@ export function SessionInitializerWithContext() {
   return (
     <AuthProvider value={authContextValue}>
       <SessionInitializer />
+      {children}
     </AuthProvider>
   )
 } 
