@@ -22,8 +22,8 @@ function getActionFromRequest(pathname: string, method: string): string {
   // Debug logging to see what we're getting
   console.log(`Action detection: pathname="${pathname}", method="${method}"`);
   
-  // Only POST requests to /api/chat (exactly) are chat messages
-  if (pathname === '/api/chat' && method === 'POST') {
+  // POST requests to both /api/chat and /api/chat/ephemeral are chat messages
+  if ((pathname === '/api/chat' || pathname === '/api/chat/ephemeral') && method === 'POST') {
     console.log('Detected as chat_message');
     return 'chat_message';
   }

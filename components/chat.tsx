@@ -1,6 +1,7 @@
 'use client'
 
 import { useEnhancedChat as useChat } from '@/hooks/use-enhanced-chat'
+import { useIsSharePage } from '@/hooks/use-is-share-page'
 import { CHAT_ID } from '@/lib/constants'
 import { useAutoScroll } from '@/lib/hooks/use-auto-scroll'
 import { Model } from '@/lib/types/models'
@@ -29,6 +30,7 @@ export function Chat({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const updateTimeoutRef = useRef<NodeJS.Timeout>()
+  const isSharePage = useIsSharePage()
   
   // Track if a response is currently being generated
   const isGeneratingRef = useRef(false)
@@ -38,6 +40,7 @@ export function Chat({
   const chatHookResult = useChat({
     initialMessages: savedMessages,
     id: CHAT_ID,
+    api: isSharePage ? '/api/chat/ephemeral' : '/api/chat', // Use ephemeral API for share pages
     body: {
       id
     },
@@ -90,7 +93,10 @@ export function Chat({
       }
       
       // Update chat history so the failed chat appears in sidebar
-      handleUrlAndHistoryUpdate()
+      // Only if not on share page
+      if (!isSharePage) {
+        handleUrlAndHistoryUpdate()
+      }
     },
     sendExtraMessageFields: false
     // Note: experimental_throttle removed as it may not be available in current version
@@ -159,6 +165,11 @@ export function Chat({
 
   // Debounced function to handle URL change and history update
   const handleUrlAndHistoryUpdate = useCallback(() => {
+    // Skip URL and history updates on share pages
+    if (isSharePage) {
+      return
+    }
+    
     // Clear any existing timeout
     if (updateTimeoutRef.current) {
       clearTimeout(updateTimeoutRef.current)
@@ -174,11 +185,12 @@ export function Chat({
       // Dispatch the event
       window.dispatchEvent(new CustomEvent('chat-history-updated'))
     }, 100)
-  }, [id])
+  }, [id, isSharePage])
 
   // Function to save partial response for manual stops
   const savePartialResponse = useCallback(async (partialText: string, reason: string = 'user_stopped') => {
-    if (!partialText.trim()) return
+    // Skip saving on share pages
+    if (isSharePage || !partialText.trim()) return
 
     try {
       console.log(`[savePartialResponse] Saving partial response due to: ${reason}`)
@@ -207,7 +219,7 @@ export function Chat({
     } catch (error) {
       console.error('[savePartialResponse] Error saving partial response:', error)
     }
-  }, [id, messages, handleUrlAndHistoryUpdate])
+  }, [id, messages, handleUrlAndHistoryUpdate, isSharePage])
 
   // Enhanced stop function that saves partial responses
   const stop = useCallback(() => {
@@ -223,42 +235,48 @@ export function Chat({
     // Call original stop function
     originalStop()
     
-    // If we were generating and have partial text, save it
-    if (wasGenerating && partialText.trim()) {
-      // Save partial response (fire and forget)
-      savePartialResponse(partialText, 'user_stopped').catch(error => {
-        console.error('[stop] Failed to save partial response:', error)
-      })
-    } else if (wasGenerating) {
-      // Even if no partial text, update history so the stopped chat appears
-      console.log('[stop] No partial response but updating history for stopped chat')
-      handleUrlAndHistoryUpdate()
+    // Only save partial responses if not on share page
+    if (!isSharePage) {
+      // If we were generating and have partial text, save it
+      if (wasGenerating && partialText.trim()) {
+        // Save partial response (fire and forget)
+        savePartialResponse(partialText, 'user_stopped').catch(error => {
+          console.error('[stop] Failed to save partial response:', error)
+        })
+      } else if (wasGenerating) {
+        // Even if no partial text, update history so the stopped chat appears
+        console.log('[stop] No partial response but updating history for stopped chat')
+        handleUrlAndHistoryUpdate()
+      }
     }
-  }, [originalStop, savePartialResponse, handleUrlAndHistoryUpdate])
+  }, [originalStop, savePartialResponse, handleUrlAndHistoryUpdate, isSharePage])
 
   // Page cleanup - save partial response if user navigates away during generation
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (isGeneratingRef.current && partialResponseRef.current.trim()) {
-        // Use navigator.sendBeacon for reliable cleanup during page unload
-        const payload = JSON.stringify({
-          chatId: id,
-          messages: messages,
-          partialResponse: partialResponseRef.current,
-          reason: 'page_unload'
-        })
-        
-        try {
-          navigator.sendBeacon('/api/chat/partial-save', payload)
-        } catch (error) {
-          console.error('[beforeunload] Failed to save partial response:', error)
-        }
+      // Skip saving on share pages
+      if (isSharePage || !isGeneratingRef.current || !partialResponseRef.current.trim()) {
+        return
+      }
+      
+      // Use navigator.sendBeacon for reliable cleanup during page unload
+      const payload = JSON.stringify({
+        chatId: id,
+        messages: messages,
+        partialResponse: partialResponseRef.current,
+        reason: 'page_unload'
+      })
+      
+      try {
+        navigator.sendBeacon('/api/chat/partial-save', payload)
+      } catch (error) {
+        console.error('[beforeunload] Failed to save partial response:', error)
       }
     }
 
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [id, messages])
+  }, [id, messages, isSharePage])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -274,13 +292,19 @@ export function Chat({
       role: 'user',
       content: query
     })
-    handleUrlAndHistoryUpdate()
+    // Only update URL/history if not on share page
+    if (!isSharePage) {
+      handleUrlAndHistoryUpdate()
+    }
   }
 
   // Wrapped append function that also handles URL and history updates
   const appendWithUrlUpdate = (message: any) => {
     append(message)
-    handleUrlAndHistoryUpdate()
+    // Only update URL/history if not on share page
+    if (!isSharePage) {
+      handleUrlAndHistoryUpdate()
+    }
   }
 
   // Custom submit handler that changes URL and updates history immediately
@@ -291,8 +315,10 @@ export function Chat({
     // First, call the original submit handler to start the chat
     originalHandleSubmit(event, options)
     
-    // Handle URL and history update with slight delay
-    handleUrlAndHistoryUpdate()
+    // Handle URL and history update with slight delay (only if not on share page)
+    if (!isSharePage) {
+      handleUrlAndHistoryUpdate()
+    }
   }
 
   // For regeneration and other operations
@@ -340,6 +366,20 @@ export function Chat({
       )}
       data-testid="full-chat"
     >
+      {/* Show ephemeral chat notice on share pages */}
+      {isSharePage && (
+        <div className="flex-shrink-0 bg-blue-50 border-b border-blue-200 px-4 py-3">
+          <div className="flex items-center text-sm text-blue-800">
+            <svg className="w-4 h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            <span>
+              أنت تشاهد محادثة مشتركة. يمكنك متابعة المحادثة، لكن رسائلك لن يتم حفظها أو مشاركتها.
+            </span>
+          </div>
+        </div>
+      )}
+      
       <ChatMessages
         messages={messages}
         data={data}
