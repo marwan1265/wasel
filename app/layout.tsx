@@ -12,6 +12,7 @@ import { getUserTier } from '@/lib/auth/user-tier';
 import { createClient } from '@/lib/supabase/server';
 import { cn } from '@/lib/utils';
 import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
 import { Cairo as FontArabic } from 'next/font/google';
 import './globals.css';
@@ -100,6 +101,7 @@ export default async function RootLayout({
             </SessionInitializerWithContext>
             <Toaster />
             <Analytics />
+            <SpeedInsights />
           </TooltipProvider>
         </ThemeProvider>
       </body>
