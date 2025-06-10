@@ -13,10 +13,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/index'
-import { Turnstile } from '@marsidev/react-turnstile'
+import { Turnstile, TurnstileInstance } from '@marsidev/react-turnstile'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 export function LoginForm({
   className,
@@ -27,9 +27,17 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const turnstileRef = useRef<TurnstileInstance | null>(null)
   const router = useRouter()
 
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+
+  const resetTurnstile = () => {
+    setTurnstileToken(null)
+    if (turnstileRef.current) {
+      turnstileRef.current.reset()
+    }
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,9 +65,10 @@ export function LoginForm({
       router.refresh()
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')
+      // Reset Turnstile token after failed attempt to prevent duplicate errors
+      resetTurnstile()
     } finally {
       setIsLoading(false)
-      // Consider resetting turnstileToken here
     }
   }
 
@@ -171,8 +180,17 @@ export function LoginForm({
 
               <div className="my-4 flex justify-center">
                 <Turnstile
+                  ref={turnstileRef}
                   siteKey={turnstileSiteKey}
                   onSuccess={setTurnstileToken}
+                  onError={() => {
+                    setError('CAPTCHA verification failed. Please try again.')
+                    setTurnstileToken(null)
+                  }}
+                  onExpire={() => {
+                    setError('CAPTCHA expired. Please complete it again.')
+                    setTurnstileToken(null)
+                  }}
                   options={{
                     theme: 'light',
                     appearance: 'always'

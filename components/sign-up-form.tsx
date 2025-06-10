@@ -13,10 +13,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/index'
-import { Turnstile } from '@marsidev/react-turnstile'
+import { Turnstile, TurnstileInstance } from '@marsidev/react-turnstile'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 export function SignUpForm({
   className,
@@ -28,9 +28,17 @@ export function SignUpForm({
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const turnstileRef = useRef<TurnstileInstance | null>(null)
   const router = useRouter()
 
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+
+  const resetTurnstile = () => {
+    setTurnstileToken(null)
+    if (turnstileRef.current) {
+      turnstileRef.current.reset()
+    }
+  }
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -60,9 +68,11 @@ export function SignUpForm({
         }
       })
       if (error) throw error
-      router.push('/auth/sign-up-success')
+      router.push(`/auth/sign-up-success?email=${encodeURIComponent(email)}`)
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'حدث خطأ ما')
+      // Reset Turnstile token after failed attempt to prevent duplicate errors
+      resetTurnstile()
     } finally {
       setIsLoading(false)
     }
@@ -137,8 +147,17 @@ export function SignUpForm({
               </div>
               <div className="my-4 flex justify-center">
                 <Turnstile
+                  ref={turnstileRef}
                   siteKey={turnstileSiteKey}
                   onSuccess={setTurnstileToken}
+                  onError={() => {
+                    setError('فشل التحقق من الهوية. يرجى المحاولة مرة أخرى.')
+                    setTurnstileToken(null)
+                  }}
+                  onExpire={() => {
+                    setError('انتهت صلاحية التحقق من الهوية. يرجى إكماله مرة أخرى.')
+                    setTurnstileToken(null)
+                  }}
                   options={{
                     theme: 'light',
                     appearance: 'always'
