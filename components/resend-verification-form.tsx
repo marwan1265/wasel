@@ -73,9 +73,9 @@ export function ResendVerificationForm({
   const isButtonDisabled = isResending || !email.trim() || countdown > 0
 
   return (
-    <div className={`space-y-4 p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800/50 ${className}`}>
+    <div className={`space-y-4 ${className}`}>
       <div className="grid gap-2">
-        <Label htmlFor="resend-email" className="text-sm font-medium text-gray-900 dark:text-gray-100">
+        <Label htmlFor="resend-email" className="text-sm font-medium text-black">
           لم تتلق البريد الإلكتروني؟
         </Label>
         <Input
@@ -86,15 +86,23 @@ export function ResendVerificationForm({
           onChange={(e) => setEmail(e.target.value)}
           disabled={isResending}
           readOnly={!!initialEmail}
-          className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-primary"
+          className="bg-white border-gray-300 focus:border-primary focus:ring-primary text-black"
         />
       </div>
+      
+      {countdown > 0 && (
+        <div className="text-center">
+          <p className="text-sm text-black font-medium">
+            يمكنك إعادة الإرسال خلال {countdown} ثانية
+          </p>
+        </div>
+      )}
       
       <Button
         onClick={handleResendVerification}
         disabled={isButtonDisabled}
         variant="outline"
-        className="w-full transition-all duration-200 hover:bg-primary hover:text-primary-foreground hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+        className="w-full transition-all duration-200 hover:bg-primary hover:text-primary-foreground hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed bg-white border-gray-300 text-black"
       >
         {isResending ? (
           <div className="flex items-center gap-2">
@@ -112,24 +120,16 @@ export function ResendVerificationForm({
       </Button>
       
       {resendSuccess && countdown === 0 && (
-        <div className="p-3 rounded-md bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800">
-          <p className="text-sm text-green-700 dark:text-green-400 text-center font-medium">
+        <div className="text-center">
+          <p className="text-sm text-green-600 font-medium">
             تم إرسال رسالة التأكيد بنجاح! تحقق من بريدك الإلكتروني.
           </p>
         </div>
       )}
       
-      {resendSuccess && countdown > 0 && (
-        <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800">
-          <p className="text-sm text-blue-700 dark:text-blue-400 text-center font-medium">
-            تم إرسال رسالة التأكيد! يمكنك إعادة الإرسال خلال {countdown} ثانية.
-          </p>
-        </div>
-      )}
-      
       {resendError && (
-        <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800">
-          <p className="text-sm text-red-700 dark:text-red-400 text-center font-medium">
+        <div className="text-center">
+          <p className="text-sm text-red-600 font-medium">
             {resendError}
           </p>
         </div>
