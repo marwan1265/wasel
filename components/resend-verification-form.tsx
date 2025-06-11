@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createClient } from '@/lib/supabase/client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface ResendVerificationFormProps {
   initialEmail?: string
@@ -23,6 +23,15 @@ export function ResendVerificationForm({
   const [isResending, setIsResending] = useState(false)
   const [resendSuccess, setResendSuccess] = useState(false)
   const [resendError, setResendError] = useState<string | null>(null)
+  const [countdown, setCountdown] = useState(0)
+
+  // Countdown effect
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [countdown])
 
   const handleResendVerification = async () => {
     if (!email.trim()) {
@@ -50,6 +59,7 @@ export function ResendVerificationForm({
       if (error) throw error
 
       setResendSuccess(true)
+      setCountdown(60) // Start 60-second countdown
       onSuccess?.()
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'حدث خطأ في إرسال البريد الإلكتروني'
@@ -60,41 +70,69 @@ export function ResendVerificationForm({
     }
   }
 
+  const isButtonDisabled = isResending || !email.trim() || countdown > 0
+
   return (
-    <div className={`space-y-3 ${className}`}>
+    <div className={`space-y-4 p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800/50 ${className}`}>
       <div className="grid gap-2">
-        <Label htmlFor="resend-email">
+        <Label htmlFor="resend-email" className="text-sm font-medium text-gray-900 dark:text-gray-100">
           لم تتلق البريد الإلكتروني؟
         </Label>
         <Input
           id="resend-email"
           type="email"
-          placeholder="أدخل بريدك الإلكتروني"
+          placeholder="بريدك الإلكتروني"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={isResending}
+          readOnly={!!initialEmail}
+          className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-primary"
         />
       </div>
       
       <Button
         onClick={handleResendVerification}
-        disabled={isResending || !email.trim()}
+        disabled={isButtonDisabled}
         variant="outline"
-        className="w-full"
+        className="w-full transition-all duration-200 hover:bg-primary hover:text-primary-foreground hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
       >
-        {isResending ? 'جاري الإرسال...' : 'إعادة إرسال رسالة التأكيد'}
+        {isResending ? (
+          <div className="flex items-center gap-2">
+            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            جاري الإرسال...
+          </div>
+        ) : countdown > 0 ? (
+          `إعادة الإرسال متاحة خلال ${countdown} ثانية`
+        ) : (
+          'إعادة إرسال رسالة التأكيد'
+        )}
       </Button>
       
-      {resendSuccess && (
-        <p className="text-sm text-green-600 text-center">
-          تم إرسال رسالة التأكيد بنجاح! تحقق من بريدك الإلكتروني.
-        </p>
+      {resendSuccess && countdown === 0 && (
+        <div className="p-3 rounded-md bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800">
+          <p className="text-sm text-green-700 dark:text-green-400 text-center font-medium">
+            تم إرسال رسالة التأكيد بنجاح! تحقق من بريدك الإلكتروني.
+          </p>
+        </div>
+      )}
+      
+      {resendSuccess && countdown > 0 && (
+        <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800">
+          <p className="text-sm text-blue-700 dark:text-blue-400 text-center font-medium">
+            تم إرسال رسالة التأكيد! يمكنك إعادة الإرسال خلال {countdown} ثانية.
+          </p>
+        </div>
       )}
       
       {resendError && (
-        <p className="text-sm text-red-600 text-center">
-          {resendError}
-        </p>
+        <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800">
+          <p className="text-sm text-red-700 dark:text-red-400 text-center font-medium">
+            {resendError}
+          </p>
+        </div>
       )}
     </div>
   )
