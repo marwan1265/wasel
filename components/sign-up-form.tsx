@@ -63,7 +63,7 @@ export function SignUpForm({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/confirm`,
+          emailRedirectTo: `https://wasel.chat/auth/confirm`,
           captchaToken: turnstileToken
         }
       })

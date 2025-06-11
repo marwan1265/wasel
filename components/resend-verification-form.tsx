@@ -70,7 +70,7 @@ export function ResendVerificationForm({
         type: 'signup',
         email: email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/confirm`,
+          emailRedirectTo: `https://wasel.chat/auth/confirm`,
           captchaToken: turnstileToken
         }
       })
