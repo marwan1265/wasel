@@ -22,6 +22,7 @@ export default function Page() {
   useEffect(() => {
     if (!email || !isPolling) return
 
+    console.log('Starting verification polling for email:', email)
     const supabase = createClient()
     let pollInterval: NodeJS.Timeout
 
@@ -34,8 +35,15 @@ export default function Page() {
           return
         }
 
+        console.log('Checking user verification status:', {
+          userExists: !!user,
+          emailConfirmed: user?.email_confirmed_at,
+          email: user?.email
+        })
+
         // Check if user exists and email is confirmed - redirect immediately
         if (user && user.email_confirmed_at) {
+          console.log('User verified! Redirecting to homepage...')
           setIsPolling(false)
           router.push('/')
           router.refresh()
@@ -48,7 +56,14 @@ export default function Page() {
     // Listen for auth state changes (for immediate detection)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change detected:', {
+          event,
+          userExists: !!session?.user,
+          emailConfirmed: session?.user?.email_confirmed_at
+        })
+        
         if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
+          console.log('Sign in detected with verified email! Redirecting...')
           setIsPolling(false)
           router.push('/')
           router.refresh()
@@ -64,6 +79,7 @@ export default function Page() {
 
     // Stop polling after 10 minutes to prevent indefinite polling
     const stopPollingTimeout = setTimeout(() => {
+      console.log('Stopping verification polling after 10 minutes')
       setIsPolling(false)
     }, 10 * 60 * 1000) // 10 minutes
 

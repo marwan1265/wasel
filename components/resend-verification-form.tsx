@@ -70,7 +70,7 @@ export function ResendVerificationForm({
         type: 'signup',
         email: email,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/auth/confirm`,
           captchaToken: turnstileToken
         }
       })
@@ -134,14 +134,6 @@ export function ResendVerificationForm({
           }}
         />
       </div>
-      
-      {countdown > 0 && (
-        <div className="text-center">
-          <p className="text-sm text-black font-medium">
-            يمكنك إعادة الإرسال خلال {countdown} ثانية
-          </p>
-        </div>
-      )}
       
       <Button
         onClick={handleResendVerification}

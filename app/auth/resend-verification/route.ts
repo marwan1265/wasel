@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       type: 'signup',
       email: email,
       options: {
-        emailRedirectTo: `${request.nextUrl.origin}/`,
+        emailRedirectTo: `${request.nextUrl.origin}/auth/confirm`,
       }
     })
 
