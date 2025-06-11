@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       type: 'signup',
       email: email,
       options: {
-        emailRedirectTo: `https://wasel.chat/auth/confirm`,
+        emailRedirectTo: `https://auth.wasel.chat/auth/confirm`,
       }
     })
 
