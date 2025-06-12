@@ -43,9 +43,9 @@ export default function Page() {
 
         // Check if user exists and email is confirmed - redirect immediately
         if (user && user.email_confirmed_at) {
-          console.log('User verified! Redirecting to homepage...')
+          console.log('User verified! Redirecting to verification success...')
           setIsPolling(false)
-          router.push('/')
+          router.push('/auth/verification-success')
           router.refresh()
         }
       } catch (error) {
@@ -65,7 +65,7 @@ export default function Page() {
         if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
           console.log('Sign in detected with verified email! Redirecting...')
           setIsPolling(false)
-          router.push('/')
+          router.push('/auth/verification-success')
           router.refresh()
         }
       }

@@ -32,11 +32,11 @@ export default function Page() {
                 </div>
                 
                 <p className="text-sm text-muted-foreground mb-6">
-                  مرحباً بك في وصل! يمكنك الآن تسجيل الدخول والبدء في استخدام المنصة.
+                  مرحباً بك في وصل! تم تأكيد حسابك بنجاح. يمكنك الآن تسجيل الدخول للوصول إلى حسابك.
                 </p>
 
                 <Button asChild className="w-full">
-                  <Link href="/auth/login">
+                  <Link href="/auth/sign-in">
                     تسجيل الدخول
                   </Link>
                 </Button>
