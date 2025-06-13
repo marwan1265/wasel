@@ -16,38 +16,51 @@ export default function Page() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const email = searchParams.get('email') || ''
-  const [isPolling, setIsPolling] = useState(true)
+  const [isVerified, setIsVerified] = useState(false)
 
   // Listen for auth state changes and poll for email verification status
   useEffect(() => {
-    if (!email || !isPolling) return
+    if (!email || isVerified) return
 
     console.log('Starting verification polling for email:', email)
     const supabase = createClient()
     let pollInterval: NodeJS.Timeout
+    let stopPollingTimeout: NodeJS.Timeout
 
-    const checkVerificationStatus = async () => {
+    const redirectToSuccess = () => {
+      console.log('Redirecting to verification success page...')
+      setIsVerified(true)
+      router.push('/auth/verification-success')
+    }
+
+    const checkVerificationStatus = async (source = 'polling') => {
       try {
-        const { data: { user }, error } = await supabase.auth.getUser()
+        console.log(`Checking verification status (${source})...`)
         
-        if (error) {
-          console.error('Error checking user status:', error)
+        // Always refresh session to get the latest data
+        const { data: sessionData, error: refreshError } = await supabase.auth.refreshSession()
+        
+        if (refreshError) {
+          console.log('Session refresh error:', refreshError.message)
+          // Try getUser as fallback
+          const { data: userData, error: getUserError } = await supabase.auth.getUser()
+          if (getUserError) {
+            console.error('Error getting user:', getUserError)
+            return
+          }
+          
+          if (userData.user?.email_confirmed_at) {
+            console.log('User verified via getUser fallback!')
+            redirectToSuccess()
+            return
+          }
+        } else if (sessionData?.session?.user?.email_confirmed_at) {
+          console.log('User verified via session refresh!')
+          redirectToSuccess()
           return
         }
 
-        console.log('Checking user verification status:', {
-          userExists: !!user,
-          emailConfirmed: user?.email_confirmed_at,
-          email: user?.email
-        })
-
-        // Check if user exists and email is confirmed - redirect immediately
-        if (user && user.email_confirmed_at) {
-          console.log('User verified! Redirecting to verification success...')
-          setIsPolling(false)
-          router.push('/auth/verification-success')
-          router.refresh()
-        }
+        console.log('User not yet verified, continuing to poll...')
       } catch (error) {
         console.error('Error during verification check:', error)
       }
@@ -62,34 +75,42 @@ export default function Page() {
           emailConfirmed: session?.user?.email_confirmed_at
         })
         
-        // Check for email verification on any auth state change, not just SIGNED_IN
-        if (session?.user?.email_confirmed_at) {
-          console.log('Email verification detected! Redirecting...')
-          setIsPolling(false)
-          router.push('/auth/verification-success')
-          router.refresh()
+        // Check for email verification on any auth state change
+        if (session?.user?.email_confirmed_at && !isVerified) {
+          console.log('Email verification detected via auth state change!')
+          redirectToSuccess()
         }
       }
     )
 
-    // Check immediately
-    checkVerificationStatus()
+    // Check immediately on page load
+    checkVerificationStatus('initial')
 
-    // Then check every 3 seconds as backup
-    pollInterval = setInterval(checkVerificationStatus, 3000)
+    // Start continuous polling every 3 seconds
+    pollInterval = setInterval(() => checkVerificationStatus('interval'), 3000)
 
-    // Stop polling after 10 minutes to prevent indefinite polling
-    const stopPollingTimeout = setTimeout(() => {
-      console.log('Stopping verification polling after 10 minutes')
-      setIsPolling(false)
-    }, 10 * 60 * 1000) // 10 minutes
+    // Check verification when user focuses back on the tab/window
+    const handleFocus = () => {
+      if (!isVerified) {
+        checkVerificationStatus('focus')
+      }
+    }
+    
+    window.addEventListener('focus', handleFocus)
+
+    // Stop polling after 15 minutes to prevent indefinite polling
+    stopPollingTimeout = setTimeout(() => {
+      console.log('Stopping verification polling after 15 minutes')
+      clearInterval(pollInterval)
+    }, 15 * 60 * 1000) // 15 minutes
 
     return () => {
       if (pollInterval) clearInterval(pollInterval)
       if (stopPollingTimeout) clearTimeout(stopPollingTimeout)
+      window.removeEventListener('focus', handleFocus)
       subscription.unsubscribe()
     }
-  }, [email, isPolling, router])
+  }, [email, router, isVerified])
 
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
