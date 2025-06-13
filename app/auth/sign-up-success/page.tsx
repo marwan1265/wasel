@@ -62,8 +62,9 @@ export default function Page() {
           emailConfirmed: session?.user?.email_confirmed_at
         })
         
-        if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
-          console.log('Sign in detected with verified email! Redirecting...')
+        // Check for email verification on any auth state change, not just SIGNED_IN
+        if (session?.user?.email_confirmed_at) {
+          console.log('Email verification detected! Redirecting...')
           setIsPolling(false)
           router.push('/auth/verification-success')
           router.refresh()
