@@ -55,8 +55,9 @@ export default function VerifyOTPPage() {
 
       if (error) throw error
 
-      // Success - redirect to verification success
-      router.push('/auth/verification-success')
+      // Success - redirect to the sign-in page with a success message
+      const emailQueryParam = encodeURIComponent(email);
+      router.push(`/auth/sign-in?email=${emailQueryParam}&message=verification_successful`);
     } catch (error: unknown) {
       let errorMessage = 'رمز التحقق غير صحيح'
       

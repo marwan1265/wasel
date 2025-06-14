@@ -3,6 +3,7 @@
 import { AuthProvider } from '@/lib/contexts/auth-context'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { SessionInitializer } from './session-initializer'
 
@@ -10,6 +11,7 @@ const SESSION_ANONYMOUS_ATTEMPTED_KEY = 'morphic_anonymous_signIn_attempted'
 
 export function SessionInitializerWithContext({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
+  const router = useRouter()
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [showTurnstile, setShowTurnstile] = useState(false)
@@ -80,7 +82,7 @@ export function SessionInitializerWithContext({ children }: { children: React.Re
     checkUserSession()
     
     // Listen to auth changes to update state
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       setCurrentUser(session?.user ?? null)
       if (session?.user) {
         sessionStorage.removeItem(SESSION_ANONYMOUS_ATTEMPTED_KEY)
@@ -94,12 +96,19 @@ export function SessionInitializerWithContext({ children }: { children: React.Re
           // Don't automatically re-show turnstile on logout to prevent loops
         }
       }
+      
+      // When a user signs in or out, the server-side session changes.
+      // router.refresh() tells Next.js to re-fetch Server Components,
+      // which will then have the new, correct session information.
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        router.refresh()
+      }
     })
 
     return () => {
       authListener?.subscription?.unsubscribe()
     }
-  }, [supabase, turnstileSiteKey])
+  }, [supabase, turnstileSiteKey, router])
 
   // Listen for auth completion events from SessionInitializer
   useEffect(() => {

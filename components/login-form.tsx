@@ -15,22 +15,36 @@ import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/index'
 import { Turnstile, TurnstileInstance } from '@marsidev/react-turnstile'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<'div'>) {
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const turnstileRef = useRef<TurnstileInstance | null>(null)
   const router = useRouter()
 
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+
+  useEffect(() => {
+    const emailParam = searchParams.get('email')
+    const messageParam = searchParams.get('message')
+
+    if (emailParam) {
+      setEmail(emailParam)
+    }
+    if (messageParam === 'verification_successful') {
+      setSuccessMessage('تم تأكيد بريدك الإلكتروني بنجاح! يرجى تسجيل الدخول للمتابعة.')
+    }
+  }, [searchParams])
 
   const resetTurnstile = () => {
     setTurnstileToken(null)
@@ -124,6 +138,11 @@ export function LoginForm({
           <CardDescription>تسجيل الدخول إلى حسابك</CardDescription>
         </CardHeader>
         <CardContent>
+          {successMessage && (
+            <div className="mb-4 rounded-md border border-green-200 bg-green-50 p-3 text-center text-sm text-green-700">
+              <p>{successMessage}</p>
+            </div>
+          )}
           <div className="flex flex-col gap-4">
             <Button
               variant="outline"
