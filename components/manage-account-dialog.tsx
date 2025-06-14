@@ -1,22 +1,22 @@
 'use client'
 
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
-  Dialog,
-  DialogPortal,
-  DialogTrigger
+    Dialog,
+    DialogPortal,
+    DialogTrigger
 } from '@/components/ui/dialog'
 import { deleteUserAccount } from '@/lib/actions/user'
 import { createClient } from '@/lib/supabase/client'
@@ -59,6 +59,10 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
   const handleLogout = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
+    
+    // Clear sidebar state cookie to prevent layout issues
+    document.cookie = 'sidebar_state=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    
     setOpen(false)
     router.push('/')
     router.refresh()
@@ -81,6 +85,10 @@ export function ManageAccountDialog({ user, children }: ManageAccountDialogProps
       // Sign out after successful deletion
       const supabase = createClient()
       await supabase.auth.signOut()
+      
+      // Clear sidebar state cookie to prevent layout issues
+      document.cookie = 'sidebar_state=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      
       setOpen(false)
       toast.success('تم حذف بيانات الحساب بنجاح')
       router.push('/')

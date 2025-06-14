@@ -63,6 +63,10 @@ export default function UserMenu({ user }: UserMenuProps) {
   const handleLogout = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
+    
+    // Clear sidebar state cookie to prevent layout issues
+    document.cookie = 'sidebar_state=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    
     router.push('/')
     router.refresh()
   }

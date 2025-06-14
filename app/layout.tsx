@@ -89,7 +89,7 @@ export default async function RootLayout({
         >
           <TooltipProvider>
             <SessionInitializerWithContext>
-              <SidebarProvider defaultOpen={!isGuestUser}>
+              <SidebarProvider defaultOpen={!isGuestUser} key={isGuestUser ? 'guest' : 'user'}>
                 {!isGuestUser && <AppSidebar />}
                 <div className="flex flex-col flex-1 h-full min-h-0">
                   <Header user={user} isGuestUser={isGuestUser} />

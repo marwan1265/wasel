@@ -101,6 +101,10 @@ export function SessionInitializerWithContext({ children }: { children: React.Re
       // router.refresh() tells Next.js to re-fetch Server Components,
       // which will then have the new, correct session information.
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        // Clear sidebar state cookie on sign out to prevent layout issues
+        if (event === 'SIGNED_OUT') {
+          document.cookie = 'sidebar_state=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        }
         router.refresh()
       }
     })
