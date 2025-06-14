@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button'
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuSub,
     DropdownMenuSubContent,
     DropdownMenuSubTrigger,
@@ -12,11 +14,13 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
     Link2,
+    MessageCircleQuestion,
     Palette,
     Settings2 // Or EllipsisVertical, etc.
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ExternalLinkItems } from './external-link-items'
+import { ReportIssueDialog } from './report-issue-dialog'
 import { ThemeMenuItems } from './theme-menu-items'
 
 export default function GuestMenu() {
@@ -76,6 +80,13 @@ export default function GuestMenu() {
             <ExternalLinkItems />
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+        <DropdownMenuSeparator />
+        <ReportIssueDialog>
+          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+            <MessageCircleQuestion className="mr-3 ml-4 h-4 w-4" />
+            <span>تقرير مشكلة</span>
+          </DropdownMenuItem>
+        </ReportIssueDialog>
       </DropdownMenuContent>
     </DropdownMenu>
   )

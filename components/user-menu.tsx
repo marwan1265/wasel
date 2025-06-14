@@ -15,11 +15,12 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
-import { Link2, LogOut, Palette, User as UserIcon } from 'lucide-react'
+import { Link2, LogOut, MessageCircleQuestion, Palette, User as UserIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { ExternalLinkItems } from './external-link-items'
 import { ManageAccountDialog } from './manage-account-dialog'
+import { ReportIssueDialog } from './report-issue-dialog'
 import { ThemeMenuItems } from './theme-menu-items'
 import { Button } from './ui/button'
 
@@ -140,6 +141,15 @@ export default function UserMenu({ user }: UserMenuProps) {
             <ExternalLinkItems />
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+        
+        <DropdownMenuSeparator />
+        <ReportIssueDialog>
+          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+            <MessageCircleQuestion className="ml-3 mr-4 h-4 w-4" />
+            <span>تقرير مشكلة</span>
+          </DropdownMenuItem>
+        </ReportIssueDialog>
+        
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="ml-3 mr-4 h-4 w-4" />
