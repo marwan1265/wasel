@@ -86,7 +86,7 @@ export function LoginForm({
     }
   }
 
-  const handleSocialLogin = async () => {
+  const handleSocialLogin = async (provider: 'google' | 'apple') => {
     const supabase = createClient()
     setIsLoading(true)
     setError(null)
@@ -99,7 +99,7 @@ export function LoginForm({
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider,
         options: {
           redirectTo: `${location.origin}/auth/oauth`
           // captchaToken: turnstileToken, // Usually not needed here, but check Supabase docs if captcha for social is enabled
@@ -148,10 +148,20 @@ export function LoginForm({
               variant="outline"
               type="button"
               className="w-full"
-              onClick={handleSocialLogin}
+              onClick={() => handleSocialLogin('google')}
               disabled={isLoading}
             >
               تسجيل الدخول باستخدام جوجل
+            </Button>
+
+            <Button
+              variant="outline"
+              type="button"
+              className="w-full"
+              onClick={() => handleSocialLogin('apple')}
+              disabled={isLoading}
+            >
+              تسجيل الدخول باستخدام Apple
             </Button>
 
             <div className="relative my-2">

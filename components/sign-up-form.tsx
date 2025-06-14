@@ -78,6 +78,28 @@ export function SignUpForm({
     }
   }
 
+  const handleSocialLogin = async (provider: 'google' | 'apple') => {
+    const supabase = createClient()
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${location.origin}/auth/oauth`
+        }
+      })
+      if (error) throw error
+    } catch (error: unknown) {
+      setError(
+        error instanceof Error ? error.message : 'حدث خطأ في تسجيل الدخول الاجتماعي'
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   if (!turnstileSiteKey) {
     console.error('Turnstile site key is not configured.')
     return (
@@ -103,8 +125,37 @@ export function SignUpForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSignUp}>
-            <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4">
+            <Button
+              variant="outline"
+              type="button"
+              className="w-full"
+              onClick={() => handleSocialLogin('google')}
+              disabled={isLoading}
+            >
+              التسجيل باستخدام جوجل
+            </Button>
+
+            <Button
+              variant="outline"
+              type="button"
+              className="w-full"
+              onClick={() => handleSocialLogin('apple')}
+              disabled={isLoading}
+            >
+              التسجيل باستخدام Apple
+            </Button>
+
+            <div className="relative my-2">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-muted px-2 text-muted-foreground">أو</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSignUp} className="flex flex-col gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="email">البريد الإلكتروني</Label>
                 <Input
@@ -168,14 +219,14 @@ export function SignUpForm({
               <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken}>
                 {isLoading ? 'جاري إنشاء الحساب...' : 'إنشاء حساب'}
               </Button>
-            </div>
-            <div className="mt-6 text-center text-sm">
-              لديك حساب بالفعل؟{' '}
-              <Link href="/auth/login" className="underline underline-offset-4">
-                تسجيل الدخول
-              </Link>
-            </div>
-          </form>
+            </form>
+          </div>
+          <div className="mt-6 text-center text-sm">
+            لديك حساب بالفعل؟{' '}
+            <Link href="/auth/login" className="underline underline-offset-4">
+              تسجيل الدخول
+            </Link>
+          </div>
         </CardContent>
       </Card>
       <div className="text-center text-xs text-muted-foreground">

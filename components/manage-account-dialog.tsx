@@ -1,22 +1,22 @@
 'use client'
 
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
-    Dialog,
-    DialogPortal,
-    DialogTrigger
+  Dialog,
+  DialogPortal,
+  DialogTrigger
 } from '@/components/ui/dialog'
 import { deleteUserAccount } from '@/lib/actions/user'
 import { createClient } from '@/lib/supabase/client'
