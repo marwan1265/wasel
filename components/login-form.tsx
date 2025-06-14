@@ -8,7 +8,7 @@ import {
     CardHeader,
     CardTitle
 } from '@/components/ui/card'
-import { IconLogo } from '@/components/ui/icons'
+import { AppleIcon, GoogleIcon, IconLogo } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createClient } from '@/lib/supabase/client'
@@ -145,23 +145,23 @@ export function LoginForm({
           )}
           <div className="flex flex-col gap-4">
             <Button
-              variant="outline"
               type="button"
-              className="w-full"
+              className="w-full bg-black text-white hover:bg-gray-800"
               onClick={() => handleSocialLogin('google')}
               disabled={isLoading}
             >
-              تسجيل الدخول باستخدام جوجل
+              <GoogleIcon className="mr-2 h-4 w-4" />
+              سجل الدخول مع Google
             </Button>
 
             <Button
-              variant="outline"
               type="button"
-              className="w-full"
+              className="w-full bg-black text-white hover:bg-gray-800"
               onClick={() => handleSocialLogin('apple')}
               disabled={isLoading}
             >
-              تسجيل الدخول باستخدام Apple
+              <AppleIcon className="mr-2 h-4 w-4" />
+              سجل الدخول مع Apple
             </Button>
 
             <div className="relative my-2">
