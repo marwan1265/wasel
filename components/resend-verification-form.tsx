@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createClient } from '@/lib/supabase/client'
 import { Turnstile, TurnstileInstance } from '@marsidev/react-turnstile'
 import { useEffect, useRef, useState } from 'react'
 
@@ -63,25 +62,29 @@ export function ResendVerificationForm({
     setResendError(null)
     setResendSuccess(false)
 
-    const supabase = createClient()
-
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: email,
-        options: {
-          emailRedirectTo: `https://wasel.chat/auth/confirm`,
+      const response = await fetch('/auth/resend-verification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
           captchaToken: turnstileToken
-        }
+        })
       })
 
-      if (error) throw error
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'حدث خطأ في إرسال رمز التحقق')
+      }
 
       setResendSuccess(true)
       setCountdown(60) // Start 60-second countdown
       onSuccess?.()
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'حدث خطأ في إرسال البريد الإلكتروني'
+      const errorMessage = error instanceof Error ? error.message : 'حدث خطأ في إرسال رمز التحقق'
       setResendError(errorMessage)
       onError?.(errorMessage)
       // Reset Turnstile token after failed attempt
@@ -105,7 +108,7 @@ export function ResendVerificationForm({
     <div className={`space-y-4 ${className}`}>
       <div className="grid gap-2">
         <Label htmlFor="resend-email" className="text-sm font-medium text-black">
-          لم تتلق البريد الإلكتروني؟
+          لم تتلق رمز التحقق؟
         </Label>
         <Input
           id="resend-email"
@@ -152,14 +155,14 @@ export function ResendVerificationForm({
         ) : countdown > 0 ? (
           `إعادة الإرسال متاحة خلال ${countdown} ثانية`
         ) : (
-          'إعادة إرسال رسالة التأكيد'
+          'إرسال رمز جديد'
         )}
       </Button>
       
       {resendSuccess && countdown === 0 && (
         <div className="text-center">
           <p className="text-sm text-green-600 font-medium">
-            تم إرسال رسالة التأكيد بنجاح! تحقق من بريدك الإلكتروني.
+            تم إرسال رمز التحقق بنجاح! تحقق من بريدك الإلكتروني.
           </p>
         </div>
       )}

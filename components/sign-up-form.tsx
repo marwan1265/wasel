@@ -63,12 +63,12 @@ export function SignUpForm({
         email,
         password,
         options: {
-          emailRedirectTo: `https://wasel.chat/auth/confirm`,
           captchaToken: turnstileToken
         }
       })
       if (error) throw error
-      router.push(`/auth/sign-up-success?email=${encodeURIComponent(email)}`)
+      // Redirect to OTP verification page instead
+      router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}&type=signup`)
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'حدث خطأ ما')
       // Reset Turnstile token after failed attempt to prevent duplicate errors
