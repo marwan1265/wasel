@@ -177,7 +177,7 @@ export default function VerifyOTPPage() {
                   </p>
                   {error.includes('انتهت صلاحية') && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      👇 اضغط "إرسال رمز جديد" للحصول على رمز جديد
+                      👇 اضغط 'إرسال رمز جديد' للحصول على رمز جديد
                     </p>
                   )}
                 </div>
