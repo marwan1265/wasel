@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/index'
 import { Turnstile, TurnstileInstance } from '@marsidev/react-turnstile'
+import { Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
@@ -25,6 +26,7 @@ export function LoginForm({
   const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -126,12 +128,12 @@ export function LoginForm({
 
   return (
     <div
-      className={cn('flex flex-col items-center gap-6', className)}
+      className={cn('flex flex-col items-center gap-4', className)}
       {...props}
     >
       <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl flex flex-col items-center justify-center gap-4">
+        <CardHeader className="text-center pb-4">
+          <CardTitle className="text-2xl flex flex-col items-center justify-center gap-3">
             <IconLogo className="size-12" />
             مرحباً بعودتك
           </CardTitle>
@@ -139,32 +141,32 @@ export function LoginForm({
         </CardHeader>
         <CardContent>
           {successMessage && (
-            <div className="mb-4 rounded-md border border-green-200 bg-green-50 p-3 text-center text-sm text-green-700">
+            <div className="mb-3 rounded-md border border-green-200 bg-green-50 p-3 text-center text-sm text-green-700">
               <p>{successMessage}</p>
             </div>
           )}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             <Button
               type="button"
-              className="w-full bg-black text-white hover:bg-gray-800"
+              className="w-full bg-black text-white hover:bg-gray-800 flex items-center justify-center gap-2"
               onClick={() => handleSocialLogin('google')}
               disabled={isLoading}
             >
-              <GoogleIcon className="mr-2 h-4 w-4" />
-              سجل الدخول مع Google
+              <span>سجل الدخول مع Google</span>
+              <GoogleIcon className="h-5 w-5 flex-shrink-0" />
             </Button>
 
             <Button
               type="button"
-              className="w-full bg-black text-white hover:bg-gray-800"
+              className="w-full bg-black text-white hover:bg-gray-800 flex items-center justify-center gap-2"
               onClick={() => handleSocialLogin('apple')}
               disabled={isLoading}
             >
-              <AppleIcon className="mr-2 h-4 w-4" />
-              سجل الدخول مع Apple
+              <span>سجل الدخول مع Apple</span>
+              <AppleIcon className="h-6 w-6 flex-shrink-0" />
             </Button>
 
-            <div className="relative my-2">
+            <div className="relative my-1">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
               </div>
@@ -173,7 +175,7 @@ export function LoginForm({
               </div>
             </div>
 
-            <form onSubmit={handleLogin} className="flex flex-col gap-4">
+            <form onSubmit={handleLogin} className="flex flex-col gap-3">
               <div className="grid gap-2">
                 <Label htmlFor="email">البريد الإلكتروني</Label>
                 <Input
@@ -184,30 +186,50 @@ export function LoginForm({
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   disabled={isLoading}
+                  dir="ltr"
+                  className="text-right"
                 />
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">كلمة المرور</Label>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="********"
+                    required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    disabled={isLoading}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute left-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-500" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-500" />
+                    )}
+                  </Button>
+                </div>
+                <div className="text-left">
                   <Link
                     href="/auth/forgot-password"
-                    className="mr-auto inline-block text-sm underline-offset-4 hover:underline"
+                    className="text-sm underline-offset-4 hover:underline text-muted-foreground"
                   >
                     نسيت كلمة المرور؟
                   </Link>
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="********"
-                  required
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  disabled={isLoading}
-                />
               </div>
 
-              <div className="my-4 flex justify-center">
+              <div className="my-2 flex justify-center">
                 <Turnstile
                   ref={turnstileRef}
                   siteKey={turnstileSiteKey}
@@ -233,7 +255,7 @@ export function LoginForm({
               </Button>
             </form>
           </div>
-          <div className="mt-6 text-center text-sm">
+          <div className="mt-4 text-center text-sm">
             ليس لديك حساب؟{' '}
             <Link href="/auth/sign-up" className="underline underline-offset-4">
               التسجيل
