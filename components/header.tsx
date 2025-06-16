@@ -63,20 +63,30 @@ export const Header: React.FC<HeaderProps> = ({ user, isGuestUser }) => {
   return (
     <header
       className={cn(
-        'absolute top-0 left-0 p-2 flex justify-between items-center z-10 backdrop-blur lg:backdrop-blur-none bg-background/80 lg:bg-transparent transition-[width] duration-200 ease-linear',
+        'absolute top-0 left-0 flex justify-between items-center z-10 backdrop-blur lg:backdrop-blur-none bg-background/80 lg:bg-transparent transition-[width] duration-200 ease-linear',
         open ? 'md:w-[calc(100%-var(--sidebar-width))]' : 'md:w-full',
-        'w-full'
+        'w-full',
+        // Mobile-specific padding
+        'p-2 md:p-2'
       )}
     >
       {/* Left side - Auth Buttons for guests */}
-      <div className="flex items-center gap-2 ml-2">
+      <div className={cn(
+        "flex items-center gap-2",
+        // Reduce margin on mobile
+        "ml-1 md:ml-2"
+      )}>
         {shouldShowGuestMenu ? (
           <>
             <Link href="/auth/login">
               <Button 
                 variant="default" 
-                size="sm"
-                className="rounded-full px-4 bg-black text-white hover:bg-gray-800 transition-colors duration-200"
+                size={isMobile ? "sm" : "sm"}
+                className={cn(
+                  "rounded-full bg-black text-white hover:bg-gray-800 transition-colors duration-200",
+                  // Adjust padding for mobile
+                  isMobile ? "px-3 text-xs" : "px-4"
+                )}
               >
                 تسجيل الدخول
               </Button>
@@ -84,8 +94,12 @@ export const Header: React.FC<HeaderProps> = ({ user, isGuestUser }) => {
             <Link href="/auth/sign-up">
               <Button 
                 variant="outline" 
-                size="sm"
-                className="rounded-full px-4 border-gray-300 hover:bg-gray-100 hover:border-gray-400 transition-colors duration-200"
+                size={isMobile ? "sm" : "sm"}
+                className={cn(
+                  "rounded-full border-gray-300 hover:bg-gray-100 hover:border-gray-400 transition-colors duration-200",
+                  // Adjust padding for mobile
+                  isMobile ? "px-3 text-xs" : "px-4"
+                )}
               >
                 إنشاء حساب
               </Button>
@@ -97,7 +111,11 @@ export const Header: React.FC<HeaderProps> = ({ user, isGuestUser }) => {
       </div>
 
       {/* Right side - New Chat Button and Settings/User Menu */}
-      <div className="flex items-center gap-2">
+      <div className={cn(
+        "flex items-center gap-2",
+        // Reduce margin on mobile
+        "mr-1 md:mr-2"
+      )}>
         {/* Conditionally wrap with tooltip only on desktop */}
         {isClient &&
           (!isMobile ? (
