@@ -11,9 +11,20 @@ const TooltipProvider = TooltipPrimitive.Provider
 const Tooltip = ({ children, ...props }: React.ComponentProps<typeof TooltipPrimitive.Root>) => {
   const isMobile = useIsMobile()
   
-  // On mobile, just render children without tooltip functionality
+  // Always provide TooltipPrimitive.Root, but disable interaction on mobile
   if (isMobile) {
-    return <>{children}</>
+    return (
+      <TooltipPrimitive.Root
+        // Quickly close / never open the tooltip on mobile
+        delayDuration={0}
+        disableHoverableContent
+        {...props}
+        // Force closed state
+        open={false}
+      >
+        {children}
+      </TooltipPrimitive.Root>
+    )
   }
   
   return <TooltipPrimitive.Root {...props}>{children}</TooltipPrimitive.Root>
