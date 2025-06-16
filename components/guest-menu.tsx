@@ -25,8 +25,10 @@ import { ThemeMenuItems } from './theme-menu-items'
 
 export default function GuestMenu() {
   const [isMobile, setIsMobile] = useState(false)
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
+    setIsClient(true)
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768)
     }
@@ -48,18 +50,17 @@ export default function GuestMenu() {
 
   return (
     <DropdownMenu>
-      {!isMobile ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {triggerButton}
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>الإعدادات</p>
-          </TooltipContent>
-        </Tooltip>
-      ) : (
-        triggerButton
-      )}
+      {isClient &&
+        (!isMobile ? (
+          <Tooltip>
+            <TooltipTrigger asChild>{triggerButton}</TooltipTrigger>
+            <TooltipContent>
+              <p>الإعدادات</p>
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          triggerButton
+        ))}
       
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuSub>

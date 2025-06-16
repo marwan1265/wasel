@@ -31,12 +31,14 @@ interface UserMenuProps {
 export default function UserMenu({ user }: UserMenuProps) {
   const router = useRouter()
   const [isMobile, setIsMobile] = useState(false)
+  const [isClient, setIsClient] = useState(false)
   const userName =
     user.user_metadata?.full_name || user.user_metadata?.name || 'مستخدم'
   const avatarUrl =
     user.user_metadata?.avatar_url || user.user_metadata?.picture
 
   useEffect(() => {
+    setIsClient(true)
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768)
     }
@@ -68,8 +70,8 @@ export default function UserMenu({ user }: UserMenuProps) {
     // Clear sidebar state cookie to prevent layout issues
     document.cookie = 'sidebar_state=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
     
-    router.push('/')
-    router.refresh()
+    // Use a full page reload to ensure all states are cleared
+    window.location.href = '/'
   }
 
   const triggerButton = (
@@ -85,18 +87,17 @@ export default function UserMenu({ user }: UserMenuProps) {
 
   return (
     <DropdownMenu>
-      {!isMobile ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {triggerButton}
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>الإعدادات</p>
-          </TooltipContent>
-        </Tooltip>
-      ) : (
-        triggerButton
-      )}
+      {isClient &&
+        (!isMobile ? (
+          <Tooltip>
+            <TooltipTrigger asChild>{triggerButton}</TooltipTrigger>
+            <TooltipContent>
+              <p>الإعدادات</p>
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          triggerButton
+        ))}
       
       <DropdownMenuContent className="w-60" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">

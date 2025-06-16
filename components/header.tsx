@@ -24,9 +24,11 @@ export const Header: React.FC<HeaderProps> = ({ user, isGuestUser }) => {
   const router = useRouter()
   const { setMessages } = useChat({ id: CHAT_ID })
   const [isMobile, setIsMobile] = useState(false)
+  const [isClient, setIsClient] = useState(false)
 
   // Check if we're on mobile
   useEffect(() => {
+    setIsClient(true)
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768)
     }
@@ -97,18 +99,17 @@ export const Header: React.FC<HeaderProps> = ({ user, isGuestUser }) => {
       {/* Right side - New Chat Button and Settings/User Menu */}
       <div className="flex items-center gap-2">
         {/* Conditionally wrap with tooltip only on desktop */}
-        {!isMobile ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              {newChatButton}
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>محادثة جديدة</p>
-            </TooltipContent>
-          </Tooltip>
-        ) : (
-          newChatButton
-        )}
+        {isClient &&
+          (!isMobile ? (
+            <Tooltip>
+              <TooltipTrigger asChild>{newChatButton}</TooltipTrigger>
+              <TooltipContent>
+                <p>محادثة جديدة</p>
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            newChatButton
+          ))}
         
         {shouldShowGuestMenu ? <GuestMenu /> : <UserMenu user={user!} />}
       </div>
