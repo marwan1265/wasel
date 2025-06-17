@@ -1,10 +1,11 @@
 import {
-    useCallback,
-    useEffect,
-    useLayoutEffect,
-    useRef,
-    useState
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState
 } from 'react'
+import { useEventListener } from './use-event-listener'
 
 interface UseAutoScrollOptions {
   /** Value that changes when the content updates (e.g. messages.length) */
@@ -76,19 +77,9 @@ export function useAutoScroll({
   }, [scrollContainer, threshold]) // Depends only on these props
 
   // Add scroll event listener
-  useEffect(() => {
-    const options = { passive: true }
-    const currentScrollElement = scrollContainer?.current
-
-    if (currentScrollElement) {
-      currentScrollElement.addEventListener('scroll', handleScroll, options)
-      return () => {
-        currentScrollElement.removeEventListener('scroll', handleScroll)
-      }
-    }
-    // No window fallback, listener is only for the specified container
-    return undefined
-  }, [handleScroll, scrollContainer]) // Re-run when scrollContainer ref changes
+  useEventListener('scroll', handleScroll, scrollContainer ?? window, {
+    passive: true
+  })
 
   // Setup intersection observer for auto re-enabling
   useEffect(() => {
@@ -110,8 +101,7 @@ export function useAutoScroll({
       },
       {
         root: scrollContainer?.current ?? null,
-        threshold: 0.95,
-        rootMargin: '0px 0px 5px 0px'
+        threshold: 0.95
       }
     )
     observer.observe(anchorRef.current)
@@ -131,7 +121,7 @@ export function useAutoScroll({
       requestAnimationFrame(() => {
         if (!anchorRef.current || !autoScrollIsEnabledRef.current) return // Double check ref inside rAF
         anchorRef.current.scrollIntoView({
-          behavior: dependency > 5 ? 'instant' : 'smooth',
+          behavior: dependency > 5 ? 'auto' : 'smooth',
           block: 'end'
         })
       })
