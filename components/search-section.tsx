@@ -42,7 +42,6 @@ export function SearchSection({
     }
   }, [])
 
-  const isToolLoading = tool.state === 'call'
   const searchResults: TypeSearchResults =
     tool.state === 'result' ? tool.result : undefined
   const query = tool.args?.query as string | undefined
@@ -50,6 +49,9 @@ export function SearchSection({
   const includeDomainsString = includeDomains
     ? ` [${includeDomains.join(', ')}]`
     : ''
+
+  // Show searching text when there are no results yet (either loading or waiting)
+  const shouldShowSearching = !searchResults?.results || searchResults.results.length === 0
 
   const { open } = useArtifact()
   const header = (
@@ -85,7 +87,7 @@ export function SearchSection({
             />
           </Section>
         )}
-      {isToolLoading ? (
+      {shouldShowSearching ? (
         <ArabicSearchLoading />
       ) : searchResults?.results ? (
         <Section title="Sources">
