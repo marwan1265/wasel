@@ -3,10 +3,9 @@
 import { cn } from '@/lib/utils'
 import { ChatRequestOptions, JSONValue, Message } from 'ai'
 import { useEffect, useMemo, useState } from 'react'
-import { ArabicSearchLoading } from './arabic-search-loading'
+import { GlowLoadingText } from './glow-loading-text'
 import { RenderMessage } from './render-message'
 import { ToolSection } from './tool-section'
-import { Spinner } from './ui/spinner'
 
 interface ChatMessagesProps {
   messages: Message[]
@@ -175,7 +174,11 @@ ChatMessagesProps) {
           />
         )}
         {shouldShowGenericSpinner && (
-          lastToolData ? <ArabicSearchLoading /> : <Spinner />
+          lastToolData ? (
+            <GlowLoadingText text="جاري البحث..." />
+          ) : (
+            <GlowLoadingText text="جارٍ التحميل..." />
+          )
         )}
         <div ref={anchorRef} />
       </div>

@@ -7,8 +7,8 @@ import { getCookie } from '@/lib/utils/cookies'
 import { useChat } from '@ai-sdk/react'
 import { ToolInvocation } from 'ai'
 import { useEffect, useState } from 'react'
-import { ArabicSearchLoading } from './arabic-search-loading'
 import { CollapsibleMessage } from './collapsible-message'
+import { SearchSkeleton } from './default-skeleton'
 import { SearchResults } from './search-results'
 import { SearchResultsImageSection } from './search-results-image'
 import { Section, ToolArgsSection } from './section'
@@ -50,7 +50,7 @@ export function SearchSection({
     ? ` [${includeDomains.join(', ')}]`
     : ''
 
-  // Show searching text when there are no results yet (either loading or waiting)
+  // Show skeleton until search results arrive
   const shouldShowSearching = !searchResults?.results || searchResults.results.length === 0
 
   const { open } = useArtifact()
@@ -88,7 +88,7 @@ export function SearchSection({
           </Section>
         )}
       {shouldShowSearching ? (
-        <ArabicSearchLoading />
+        <SearchSkeleton />
       ) : searchResults?.results ? (
         <Section title="Sources">
           <SearchResults results={searchResults.results} />

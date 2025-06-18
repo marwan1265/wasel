@@ -7,7 +7,6 @@ import { getCookie } from '@/lib/utils/cookies'
 import { useChat } from '@ai-sdk/react'
 import { ToolInvocation } from 'ai'
 import { useEffect, useState } from 'react'
-import { ArabicSearchLoading } from './arabic-search-loading'
 import { CollapsibleMessage } from './collapsible-message'
 import { DefaultSkeleton } from './default-skeleton'
 import { Section, ToolArgsSection } from './section'
@@ -71,7 +70,7 @@ export function VideoSearchSection({
       showIcon={false}
     >
       {isToolLoading ? (
-        isSearchMode ? <ArabicSearchLoading /> : <DefaultSkeleton />
+        <DefaultSkeleton />
       ) : videoResults ? (
         <Section title="Videos">
           <VideoSearchResults results={videoResults} />
