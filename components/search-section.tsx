@@ -9,7 +9,6 @@ import { ToolInvocation } from 'ai'
 import { useEffect, useState } from 'react'
 import { ArabicSearchLoading } from './arabic-search-loading'
 import { CollapsibleMessage } from './collapsible-message'
-import { SearchSkeleton } from './default-skeleton'
 import { SearchResults } from './search-results'
 import { SearchResultsImageSection } from './search-results-image'
 import { Section, ToolArgsSection } from './section'
@@ -87,7 +86,7 @@ export function SearchSection({
           </Section>
         )}
       {isToolLoading ? (
-        isSearchMode ? <ArabicSearchLoading /> : <SearchSkeleton />
+        <ArabicSearchLoading />
       ) : searchResults?.results ? (
         <Section title="Sources">
           <SearchResults results={searchResults.results} />
