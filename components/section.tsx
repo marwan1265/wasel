@@ -2,15 +2,15 @@
 
 import { cn } from '@/lib/utils'
 import {
-  BookCheck,
-  Check,
-  File,
-  Film,
-  Image,
-  MessageCircleMore,
-  Newspaper,
-  Repeat2,
-  Search
+    BookCheck,
+    Check,
+    File,
+    Film,
+    Image,
+    MessageCircleMore,
+    Newspaper,
+    Repeat2,
+    Search
 } from 'lucide-react'
 import React from 'react'
 import { ToolBadge } from './tool-badge'
@@ -67,6 +67,28 @@ export const Section: React.FC<SectionProps> = ({
       icon = <Search size={iconSize} className={iconClassName} />
   }
 
+  // Translate titles to Arabic
+  const getTranslatedTitle = (title: string) => {
+    switch (title) {
+      case 'Images':
+        return 'الصور'
+      case 'Videos':
+        return 'الفيديوهات'
+      case 'Sources':
+        return 'المصادر'
+      case 'Answer':
+        return 'الإجابة'
+      case 'Related':
+        return 'ذات صلة'
+      case 'Follow-up':
+        return 'متابعة'
+      case 'Content':
+        return 'المحتوى'
+      default:
+        return title
+    }
+  }
+
   return (
     <>
       {separator && <Separator className="my-2 bg-primary/10" />}
@@ -79,13 +101,13 @@ export const Section: React.FC<SectionProps> = ({
         {title && type === 'text' && (
           <h2 className="flex items-center leading-none py-2">
             {icon}
-            {title}
+            {getTranslatedTitle(title)}
           </h2>
         )}
         {title && type === 'badge' && (
           <Badge variant="secondary" className="mb-2">
             {icon}
-            {title}
+            {getTranslatedTitle(title)}
           </Badge>
         )}
         {children}
@@ -111,7 +133,7 @@ export function ToolArgsSection({
       <ToolBadge tool={tool}>{children}</ToolBadge>
       {number && (
         <StatusIndicator icon={Check} iconClassName="text-green-500">
-          {number} results
+          {number} نتيجة
         </StatusIndicator>
       )}
     </Section>

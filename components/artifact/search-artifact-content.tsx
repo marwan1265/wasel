@@ -12,7 +12,7 @@ export function SearchArtifactContent({ tool }: { tool: ToolInvocation }) {
   const query = tool.args?.query as string | undefined
 
   if (!searchResults?.results) {
-    return <div className="p-4">No search results</div>
+    return <div className="p-4">لا توجد نتائج بحث</div>
   }
 
   return (

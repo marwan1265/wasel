@@ -31,10 +31,10 @@ export function ReasoningSection({
           <Badge className="flex items-center gap-0.5" variant="secondary">
             <DeepResearchIcon className="size-4" />
             {content.time === 0
-              ? 'Thinking...'
+              ? 'جاري التفكير...'
               : content.time !== undefined && content.time > 0
-              ? `Thought for ${(content.time / 1000).toFixed(1)} seconds`
-              : 'Thoughts'}
+              ? `فكر لمدة ${(content.time / 1000).toFixed(1)} ثانية`
+              : 'الأفكار'}
           </Badge>
           {content.time === 0 ? (
             <Loader2
@@ -43,7 +43,7 @@ export function ReasoningSection({
             />
           ) : (
             <StatusIndicator icon={Check} iconClassName="text-green-500">
-              {`${content.reasoning.length.toLocaleString()} characters`}
+              {`${content.reasoning.length.toLocaleString()} حرف`}
             </StatusIndicator>
           )}
         </div>

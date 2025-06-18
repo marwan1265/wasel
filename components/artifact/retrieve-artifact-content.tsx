@@ -3,8 +3,8 @@
 import { SearchResults } from '@/components/search-results'
 import { Section, ToolArgsSection } from '@/components/section'
 import type {
-  SearchResultItem,
-  SearchResults as TypeSearchResults
+    SearchResultItem,
+    SearchResults as TypeSearchResults
 } from '@/lib/types/index'
 import type { ToolInvocation } from 'ai'
 import { MemoizedReactMarkdown } from '../ui/markdown'
@@ -17,7 +17,7 @@ export function RetrieveArtifactContent({ tool }: { tool: ToolInvocation }) {
   const url = tool.args?.url as string | undefined
 
   if (!searchResults?.results) {
-    return <div className="p-4">No retrieved content</div>
+    return <div className="p-4">لا يوجد محتوى مسترجع</div>
   }
 
   const truncatedResults: SearchResultItem[] = searchResults.results.map(

@@ -3,8 +3,11 @@
 import { useArtifact } from '@/components/artifact/artifact-context'
 import { CHAT_ID } from '@/lib/constants'
 import type { SearchResults as TypeSearchResults } from '@/lib/types'
+import { getCookie } from '@/lib/utils/cookies'
 import { useChat } from '@ai-sdk/react'
 import { ToolInvocation } from 'ai'
+import { useEffect, useState } from 'react'
+import { ArabicSearchLoading } from './arabic-search-loading'
 import { CollapsibleMessage } from './collapsible-message'
 import { SearchSkeleton } from './default-skeleton'
 import { SearchResults } from './search-results'
@@ -22,10 +25,23 @@ export function SearchSection({
   isOpen,
   onOpenChange
 }: SearchSectionProps) {
+  const [isSearchMode, setIsSearchMode] = useState(true)
+  
   const { status } = useChat({
     id: CHAT_ID
   })
   const isLoading = status === 'submitted' || status === 'streaming'
+
+  // Check search mode from cookie
+  useEffect(() => {
+    try {
+      const savedMode = getCookie('search-mode')
+      setIsSearchMode(savedMode !== 'false') // Default to true if not set
+    } catch (error) {
+      console.error('Error reading search mode:', error)
+      setIsSearchMode(true) // Default to true on error
+    }
+  }, [])
 
   const isToolLoading = tool.state === 'call'
   const searchResults: TypeSearchResults =
@@ -71,7 +87,7 @@ export function SearchSection({
           </Section>
         )}
       {isLoading && isToolLoading ? (
-        <SearchSkeleton />
+        isSearchMode ? <ArabicSearchLoading /> : <SearchSkeleton />
       ) : searchResults?.results ? (
         <Section title="Sources">
           <SearchResults results={searchResults.results} />

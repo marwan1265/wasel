@@ -192,3 +192,19 @@
     }
   }
 }
+
+@layer utilities {
+  /* Arabic search loading animation */
+  @keyframes slide-gradient {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+  
+  .animate-slide-gradient {
+    animation: slide-gradient 2s ease-in-out infinite;
+  }
+}

@@ -120,7 +120,7 @@ export function SearchResults({
                 className="text-muted-foreground"
                 onClick={handleViewMore}
               >
-                View {additionalResultsCount} more
+                شاهد {additionalResultsCount} أخرى
               </Button>
             </CardContent>
           </Card>
