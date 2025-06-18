@@ -14,15 +14,30 @@ export function InspectorDrawer() {
   // Function to get the title based on part type (mirrors ArtifactPanel logic)
   const getTitle = () => {
     if (!part) return 'Artifact' // Default title
+    
+    // Function to translate tool names to Arabic
+    const translateToolName = (toolName: string) => {
+      switch (toolName) {
+        case 'search':
+          return 'بحث'
+        case 'videoSearch':
+          return 'بحث الفيديو'
+        case 'retrieve':
+          return 'استرجاع'
+        default:
+          return toolName
+      }
+    }
+    
     switch (part.type) {
       case 'tool-invocation':
-        return part.toolInvocation.toolName
+        return translateToolName(part.toolInvocation.toolName)
       case 'reasoning':
-        return 'Reasoning'
+        return 'التفكير'
       case 'text':
-        return 'Text'
+        return 'نص'
       default:
-        return 'Content'
+        return 'المحتوى'
     }
   }
 

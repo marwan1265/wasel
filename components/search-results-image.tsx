@@ -2,20 +2,20 @@
 'use client'
 
 import {
-  Carousel,
-  type CarouselApi,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious
+    Carousel,
+    type CarouselApi,
+    CarouselContent,
+    CarouselItem,
+    CarouselNext,
+    CarouselPrevious
 } from '@/components/ui/carousel'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
 } from '@/components/ui/dialog'
 import { SearchResultImage } from '@/lib/types'
 import { PlusCircle } from 'lucide-react'
@@ -90,7 +90,7 @@ export const SearchResultsImageSection: React.FC<
 
   // Early return AFTER all hooks if there are no images to display
   if (convertedImages.length === 0) {
-    return <div className="text-muted-foreground">No images found</div>
+    return <div className="text-muted-foreground">لا توجد صور</div>
   }
 
   const renderImageGrid = (
@@ -152,7 +152,7 @@ export const SearchResultsImageSection: React.FC<
             </DialogTrigger>
             <DialogContent className="sm:max-w-3xl max-h-[80vh] overflow-auto">
               <DialogHeader>
-                <DialogTitle>Search Images</DialogTitle>
+                <DialogTitle>البحث في الصور</DialogTitle>
                 <DialogDescription className="text-sm">
                   {query}
                 </DialogDescription>
@@ -195,7 +195,7 @@ export const SearchResultsImageSection: React.FC<
                   )}
                 </Carousel>
                 <div className="py-2 text-center text-sm text-muted-foreground">
-                  {current} of {count}
+                  {current.toLocaleString('ar')} من {count.toLocaleString('ar')}
                 </div>
               </div>
             </DialogContent>

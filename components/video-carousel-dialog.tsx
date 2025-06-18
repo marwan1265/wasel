@@ -1,20 +1,20 @@
 'use client'
 
 import {
-  Carousel,
-  type CarouselApi,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious
+    Carousel,
+    type CarouselApi,
+    CarouselContent,
+    CarouselItem,
+    CarouselNext,
+    CarouselPrevious
 } from '@/components/ui/carousel'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
 } from '@/components/ui/dialog'
 import { SerperSearchResultItem } from '@/lib/types'
 import { useEffect, useRef, useState } from 'react'
@@ -70,7 +70,7 @@ export function VideoCarouselDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-3xl max-h-[80vh] overflow-auto">
         <DialogHeader>
-          <DialogTitle>Search Videos</DialogTitle>
+          <DialogTitle>البحث في الفيديوهات</DialogTitle>
           <DialogDescription className="text-sm">{query}</DialogDescription>
         </DialogHeader>
         <div className="py-4">
@@ -113,7 +113,7 @@ export function VideoCarouselDialog({
           </Carousel>
           <div className="py-2">
             <div className="text-center text-sm text-muted-foreground">
-              {current} of {count}
+              {current.toLocaleString('ar')} من {count.toLocaleString('ar')}
             </div>
           </div>
         </div>

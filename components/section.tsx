@@ -2,15 +2,15 @@
 
 import { cn } from '@/lib/utils'
 import {
-    BookCheck,
-    Check,
-    File,
-    Film,
-    Image,
-    MessageCircleMore,
-    Newspaper,
-    Repeat2,
-    Search
+  BookCheck,
+  Check,
+  File,
+  Film,
+  Image,
+  MessageCircleMore,
+  Newspaper,
+  Repeat2,
+  Search
 } from 'lucide-react'
 import React from 'react'
 import { ToolBadge } from './tool-badge'
@@ -133,7 +133,7 @@ export function ToolArgsSection({
       <ToolBadge tool={tool}>{children}</ToolBadge>
       {number && (
         <StatusIndicator icon={Check} iconClassName="text-green-500">
-          {number} نتيجة
+          نتيجة {number}
         </StatusIndicator>
       )}
     </Section>

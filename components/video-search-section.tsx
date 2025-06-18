@@ -53,7 +53,7 @@ export function VideoSearchSection({
       type="button"
       onClick={() => open({ type: 'tool-invocation', toolInvocation: tool })}
       className="flex items-center justify-between w-full text-left rounded-md p-1 -ml-1"
-      title="Open details"
+      title="فتح التفاصيل"
     >
       <ToolArgsSection tool="videoSearch" number={videoResults?.videos?.length}>
         {query}
@@ -70,7 +70,7 @@ export function VideoSearchSection({
       onOpenChange={onOpenChange}
       showIcon={false}
     >
-      {isLoading && isToolLoading ? (
+      {isToolLoading ? (
         isSearchMode ? <ArabicSearchLoading /> : <DefaultSkeleton />
       ) : videoResults ? (
         <Section title="Videos">

@@ -5,7 +5,7 @@ import { useArtifact } from '@/components/artifact/artifact-context'
 import { DeepResearchIcon } from '@/components/ui/icons'
 import { Separator } from '@/components/ui/separator'
 import {
-    TooltipProvider
+  TooltipProvider
 } from '@/components/ui/tooltip'
 import { TooltipButton } from '@/components/ui/tooltip-button'
 import { MessageSquare, Minimize2, Wrench } from 'lucide-react'
@@ -17,26 +17,40 @@ export function InspectorPanel() {
 
   // Get the icon and title based on part type
   const getIconAndTitle = () => {
+    // Function to translate tool names to Arabic
+    const translateToolName = (toolName: string) => {
+      switch (toolName) {
+        case 'search':
+          return 'بحث'
+        case 'videoSearch':
+          return 'بحث الفيديو'
+        case 'retrieve':
+          return 'استرجاع'
+        default:
+          return toolName
+      }
+    }
+
     switch (part.type) {
       case 'tool-invocation':
         return {
           icon: <Wrench size={18} />,
-          title: part.toolInvocation.toolName
+          title: translateToolName(part.toolInvocation.toolName)
         }
       case 'reasoning':
         return {
           icon: <DeepResearchIcon className="size-[18px]" />,
-          title: 'Reasoning'
+          title: 'التفكير'
         }
       case 'text':
         return {
           icon: <MessageSquare size={18} />,
-          title: 'Text'
+          title: 'نص'
         }
       default:
         return {
           icon: <MessageSquare size={18} />,
-          title: 'Content'
+          title: 'المحتوى'
         }
     }
   }
@@ -59,7 +73,7 @@ export function InspectorPanel() {
               size="icon"
               onClick={close}
               aria-label="Close panel"
-              tooltipContent="Minimize"
+              tooltipContent="إخفاء"
             >
               <Minimize2 className="h-4 w-4" />
             </TooltipButton>

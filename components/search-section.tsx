@@ -58,7 +58,7 @@ export function SearchSection({
       type="button"
       onClick={() => open({ type: 'tool-invocation', toolInvocation: tool })}
       className="flex items-center justify-between w-full text-left rounded-md p-1 -ml-1"
-      title="Open details"
+      title="فتح التفاصيل"
     >
       <ToolArgsSection
         tool="search"
@@ -86,7 +86,7 @@ export function SearchSection({
             />
           </Section>
         )}
-      {isLoading && isToolLoading ? (
+      {isToolLoading ? (
         isSearchMode ? <ArabicSearchLoading /> : <SearchSkeleton />
       ) : searchResults?.results ? (
         <Section title="Sources">
