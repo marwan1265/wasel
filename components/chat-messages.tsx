@@ -2,7 +2,8 @@
 
 import { cn } from '@/lib/utils'
 import { ChatRequestOptions, JSONValue, Message } from 'ai'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { ArabicSearchLoading } from './arabic-search-loading'
 import { RenderMessage } from './render-message'
 import { Spinner } from './ui/spinner'
 
@@ -72,9 +73,28 @@ ChatMessagesProps) {
     };
   }, [isLoading]);
 
-  // get last tool data for manual tool call
-  // const lastToolData = useMemo(() => { ... }); // This logic is being removed/disabled
-  const lastToolData = null; // Ensure it's always null if not used elsewhere
+  // Extract last tool invocation (call state) from messages, if any
+  const lastToolData = useMemo(() => {
+    // Find last assistant message with parts containing tool-invocation
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i]
+      if (msg.role !== 'assistant') continue
+      // @ts-ignore
+      const parts: any[] | undefined = msg.parts
+      if (!parts) continue
+      // Find last tool invocation part without result (call state)
+      for (let j = parts.length - 1; j >= 0; j--) {
+        const part = parts[j]
+        if (part.type === 'tool-invocation') {
+          const tool = part.toolInvocation
+          if (tool.toolName === 'search' && tool.state === 'call') {
+            return tool
+          }
+        }
+      }
+    }
+    return null
+  }, [messages])
 
   if (!messages.length) return null
 
@@ -157,7 +177,7 @@ ChatMessagesProps) {
           )
         } */}
         {shouldShowGenericSpinner && (
-          <Spinner />
+          lastToolData ? <ArabicSearchLoading /> : <Spinner />
         )}
         <div ref={anchorRef} />
       </div>
