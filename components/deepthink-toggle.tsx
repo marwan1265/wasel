@@ -29,31 +29,23 @@ export function DeepthinkToggle() {
 
   // Load saved preference on mount
   useEffect(() => {
-    try {
-      const savedMode = getCookie('deepthink-mode')
-      console.log('Initial deepthink-mode cookie:', savedMode)
-      if (savedMode !== null) {
-        // Allow deepthink mode for both free and pro users
-        const shouldEnable = savedMode === 'true' && (isPro || isFree)
-        setIsDeepthinkMode(shouldEnable)
-        
-        // If user had deepthink enabled but is now guest or unknown, disable it
-        if (savedMode === 'true' && (isGuest || isUnknown) && !isLoading) {
-          setCookie('deepthink-mode', 'false')
-          // Reset to default model
-          const defaultModel = { id: 'deepseek-chat', name: 'DeepSeek V3 (Default)', provider: 'DeepSeek', providerId: 'deepseek', enabled: true, toolCallType: 'manual' }
-          setCookie('selectedModel', JSON.stringify(defaultModel))
-        }
-      } else {
-        // Default to false and save preference
-        setCookie('deepthink-mode', 'false')
-      }
+    const savedMode = getCookie('deepthink-mode')
+    if (savedMode) {
+      const mode = savedMode === 'true'
+      // Allow deepthink mode for both free and pro users
+      const shouldEnable = mode && (isPro || isFree)
+      setIsDeepthinkMode(shouldEnable)
       
-      // Log the current selected model
-      const currentModel = getCookie('selectedModel')
-      console.log('Current selectedModel cookie:', currentModel)
-    } catch (error) {
-      console.error('Error accessing cookies:', error)
+      // If user had deepthink enabled but is now guest or unknown, disable it
+      if (mode && (isGuest || isUnknown) && !isLoading) {
+        setCookie('deepthink-mode', 'false')
+        // Reset to default model
+        const defaultModel = { id: 'deepseek-chat', name: 'DeepSeek V3 (Default)', provider: 'DeepSeek', providerId: 'deepseek', enabled: true, toolCallType: 'manual' }
+        setCookie('selectedModel', JSON.stringify(defaultModel))
+      }
+    } else {
+      // Default to false and save preference
+      setCookie('deepthink-mode', 'false')
     }
   }, [isPro, isFree, isGuest, isUnknown, isLoading])
 
@@ -85,7 +77,6 @@ export function DeepthinkToggle() {
       // Verify the cookie was set
       setTimeout(() => {
         const updatedModel = getCookie('selectedModel')
-        console.log('Updated selectedModel cookie:', updatedModel)
       }, 100)
     } catch (error) {
       console.error('Error toggling deepthink mode:', error)

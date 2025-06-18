@@ -27,7 +27,6 @@ export function SessionInitializerWithContext({ children }: { children: React.Re
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
       if (sessionError) {
-        console.error("Error fetching session:", sessionError)
         setIsLoading(false)
         // If we can't get session and haven't attempted anon sign-in, we'll need to show Turnstile
         if (!sessionStorage.getItem(SESSION_ANONYMOUS_ATTEMPTED_KEY)) {
@@ -46,7 +45,6 @@ export function SessionInitializerWithContext({ children }: { children: React.Re
 
       if (session?.user) {
         setCurrentUser(session.user)
-        console.log('User session found:', session.user.id)
         sessionStorage.removeItem(SESSION_ANONYMOUS_ATTEMPTED_KEY)
         setIsLoading(false)
         setIsAuthPending(false)
@@ -55,13 +53,11 @@ export function SessionInitializerWithContext({ children }: { children: React.Re
       } else {
         // No active session, check if we've already tried anonymous sign-in
         if (!sessionStorage.getItem(SESSION_ANONYMOUS_ATTEMPTED_KEY)) {
-          console.log('No active session, preparing for anonymous sign-in.')
           setShowTurnstile(true)
           setIsAuthPending(true)
           setIsAuthSuccessful(false)
           setAuthError(null)
         } else {
-          console.log('Anonymous sign-in already attempted in this session.')
           setIsAuthPending(false)
           setIsAuthSuccessful(false)
           setAuthError('Anonymous sign-in was attempted but no session exists')
@@ -71,12 +67,11 @@ export function SessionInitializerWithContext({ children }: { children: React.Re
     }
 
     if (!turnstileSiteKey) {
-      console.error('Turnstile site key is not configured. Cannot attempt anonymous sign-in.')
       setIsLoading(false)
       setIsAuthPending(false)
       setIsAuthSuccessful(false)
       setAuthError('Turnstile site key not configured')
-      return
+      return;
     }
 
     checkUserSession()
@@ -119,8 +114,6 @@ export function SessionInitializerWithContext({ children }: { children: React.Re
     const handleAuthComplete = (event: CustomEvent) => {
       const { success, error, user } = event.detail
       
-      console.log('Auth complete event received:', { success, error, user: user?.id })
-      
       setIsAuthPending(false)
       setShowTurnstile(false)
       setIsAuthSuccessful(success)
@@ -139,7 +132,7 @@ export function SessionInitializerWithContext({ children }: { children: React.Re
     return () => {
       window.removeEventListener('auth-complete', handleAuthComplete as EventListener)
     }
-  }, [])
+  }, [setCurrentUser, setShowTurnstile, setIsAuthPending, setIsAuthSuccessful, setAuthError])
 
   const authContextValue = {
     isAuthReady: !isLoading && !isAuthPending,

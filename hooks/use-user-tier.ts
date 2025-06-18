@@ -44,17 +44,19 @@ export const useUserTier = () => {
     fetchUserTier()
 
     // Listen for auth state changes and refetch tier when user logs in/out
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, 'Session exists:', !!session)
-        // Refetch user tier when auth state changes
-        await fetchUserTier()
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (session) {
+          setUserTierInfo(session.user.user_metadata.tier)
+        }
       }
-    )
+    })
 
     // Cleanup listener on unmount
     return () => {
-      authListener?.subscription?.unsubscribe()
+      subscription?.unsubscribe()
     }
   }, [])
 
