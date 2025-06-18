@@ -5,6 +5,7 @@ import { ChatRequestOptions, JSONValue, Message } from 'ai'
 import { useEffect, useMemo, useState } from 'react'
 import { ArabicSearchLoading } from './arabic-search-loading'
 import { RenderMessage } from './render-message'
+import { ToolSection } from './tool-section'
 import { Spinner } from './ui/spinner'
 
 interface ChatMessagesProps {
@@ -134,9 +135,8 @@ ChatMessagesProps) {
     }))
   }
 
-  // Determine if ToolSection should be shown (this is for active tool calls)
-  // const shouldShowToolSection = isLoading && lastToolData; // This logic is being removed/disabled
-  const shouldShowToolSection = false; // Ensure this section is not shown
+  // Show ToolSection (which renders SearchSection) while an active search tool invocation is in progress
+  const shouldShowToolSection = lastToolData !== null;
 
   return (
     <div
@@ -165,17 +165,15 @@ ChatMessagesProps) {
             />
           </div>
         ))}
-        {/* {
-          shouldShowToolSection && lastToolData && (
-            <ToolSection
-              key={manualToolCallId}
-              tool={lastToolData}
-              isOpen={getIsOpen(manualToolCallId)}
-              onOpenChange={open => handleOpenChange(manualToolCallId, open)}
-              addToolResult={addToolResult}
-            />
-          )
-        } */}
+        {shouldShowToolSection && lastToolData && (
+          <ToolSection
+            key={manualToolCallId}
+            tool={lastToolData}
+            isOpen={getIsOpen(manualToolCallId)}
+            onOpenChange={open => handleOpenChange(manualToolCallId, open)}
+            addToolResult={addToolResult}
+          />
+        )}
         {shouldShowGenericSpinner && (
           lastToolData ? <ArabicSearchLoading /> : <Spinner />
         )}
