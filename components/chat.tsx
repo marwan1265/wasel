@@ -405,19 +405,12 @@ export function Chat({
         isSearchMode={isSearchMode}
       />
       <ChatPanel
+        messages={messages}
         input={input}
         handleInputChange={handleInputChange}
-        handleSubmit={onSubmit}
-        isLoading={isLoading}
-        messages={messages}
-        setMessages={setMessages}
+        onSubmit={onSubmit}
         stop={stop}
-        query={query}
-        append={appendWithUrlUpdate}
-        models={models}
-        isAutoScroll={isAutoScroll}
-        reload={handleReloadFrom}
-        isGenerating={isGeneratingRef.current}
+        isLoading={isLoading}
         isSearchMode={isSearchMode}
         onSearchModeChange={setIsSearchMode}
       />
