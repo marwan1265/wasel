@@ -3,10 +3,8 @@
 import { useArtifact } from '@/components/artifact/artifact-context'
 import { CHAT_ID } from '@/lib/constants'
 import type { SearchResults as TypeSearchResults } from '@/lib/types'
-import { getCookie } from '@/lib/utils/cookies'
 import { useChat } from '@ai-sdk/react'
 import { ToolInvocation } from 'ai'
-import { useEffect, useState } from 'react'
 import { CollapsibleMessage } from './collapsible-message'
 import { SearchSkeleton } from './default-skeleton'
 import { GlowLoadingText } from './glow-loading-text'
@@ -25,24 +23,12 @@ export function SearchSection({
   isOpen,
   onOpenChange
 }: SearchSectionProps) {
-  const [isSearchMode, setIsSearchMode] = useState(true)
-  
   const { status } = useChat({
     id: CHAT_ID
   })
   const isLoading = status === 'submitted' || status === 'streaming'
 
-  // Check search mode from cookie
-  useEffect(() => {
-    try {
-      const savedMode = getCookie('search-mode')
-      setIsSearchMode(savedMode !== 'false') // Default to true if not set
-    } catch (error) {
-      console.error('Error reading search mode:', error)
-      setIsSearchMode(true) // Default to true on error
-    }
-  }, [])
-
+  const isToolLoading = tool.state === 'call'
   const searchResults: TypeSearchResults =
     tool.state === 'result' ? tool.result : undefined
   const query = tool.args?.query as string | undefined
@@ -50,9 +36,6 @@ export function SearchSection({
   const includeDomainsString = includeDomains
     ? ` [${includeDomains.join(', ')}]`
     : ''
-
-  // Show loading when tool is in 'call' state or when no results yet
-  const shouldShowSearching = tool.state === 'call' || (!searchResults?.results || searchResults.results.length === 0)
 
   const { open } = useArtifact()
   const header = (
@@ -88,7 +71,7 @@ export function SearchSection({
             />
           </Section>
         )}
-      {shouldShowSearching ? (
+      {isLoading && isToolLoading ? (
         <div>
           <GlowLoadingText text="جاري البحث..." className="mb-3" />
           <SearchSkeleton />

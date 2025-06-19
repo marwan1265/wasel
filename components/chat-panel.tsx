@@ -2,7 +2,7 @@
 
 import { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
-import { Message } from 'ai'
+import { ChatRequestOptions, type Message } from 'ai'
 import { ArrowUp, ChevronDown, Square } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -11,6 +11,7 @@ import Textarea from 'react-textarea-autosize'
 import { useArtifact } from './artifact/artifact-context'
 import { DeepthinkToggle } from './deepthink-toggle'
 import { EmptyScreen } from './empty-screen'
+import { ModelSelector } from './model-selector'
 import { SearchModeToggle } from './search-mode-toggle'
 import { Button } from './ui/button'
 import { IconLogo } from './ui/icons'
@@ -29,6 +30,13 @@ interface ChatPanelProps {
   models?: Model[]
   /** Whether auto-scroll is currently active (at bottom) */
   isAutoScroll: boolean
+  reload: (
+    messageId: string,
+    options?: ChatRequestOptions
+  ) => Promise<string | null | undefined>
+  isGenerating: boolean
+  isSearchMode: boolean
+  onSearchModeChange: (value: boolean) => void
 }
 
 export function ChatPanel({
@@ -42,7 +50,11 @@ export function ChatPanel({
   stop,
   append,
   models,
-  isAutoScroll
+  isAutoScroll,
+  reload,
+  isGenerating,
+  isSearchMode,
+  onSearchModeChange
 }: ChatPanelProps) {
   const [showEmptyScreen, setShowEmptyScreen] = useState(false)
   const router = useRouter()
@@ -230,11 +242,15 @@ export function ChatPanel({
 
           {/* Bottom menu area */}
           <div className="flex items-center justify-between p-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center space-x-2">
+              <ModelSelector models={models || []} />
+              <SearchModeToggle
+                isSearchMode={isSearchMode}
+                onSearchModeChange={onSearchModeChange}
+              />
               <DeepthinkToggle />
-              <SearchModeToggle />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center space-x-2">
               {!isMobile ? (
                 <Tooltip>
                   <TooltipTrigger asChild>

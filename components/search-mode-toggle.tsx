@@ -2,13 +2,20 @@
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { getCookie, setCookie } from '@/lib/utils/cookies'
+import { setCookie } from '@/lib/utils/cookies'
 import { Globe } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from './ui/button'
 
-export function SearchModeToggle() {
-  const [isSearchMode, setIsSearchMode] = useState(true)
+export interface SearchModeToggleProps {
+  isSearchMode: boolean
+  onSearchModeChange: (value: boolean) => void
+}
+
+export function SearchModeToggle({
+  isSearchMode,
+  onSearchModeChange
+}: SearchModeToggleProps) {
   const [isMobile, setIsMobile] = useState(false)
 
   // Check if we're on mobile
@@ -23,25 +30,10 @@ export function SearchModeToggle() {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Load saved preference on mount
-  useEffect(() => {
-    try {
-      const savedMode = getCookie('search-mode')
-      if (savedMode !== null) {
-        setIsSearchMode(savedMode === 'true')
-      } else {
-        // Default to true and save preference
-        setCookie('search-mode', 'true')
-      }
-    } catch (error) {
-      console.error('Error accessing cookies:', error)
-    }
-  }, [])
-
   const toggleSearchMode = () => {
     try {
       const newState = !isSearchMode
-      setIsSearchMode(newState)
+      onSearchModeChange(newState)
       setCookie('search-mode', newState.toString())
       console.log('Search mode toggled:', newState)
     } catch (error) {

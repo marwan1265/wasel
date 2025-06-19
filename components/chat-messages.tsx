@@ -12,6 +12,7 @@ interface ChatMessagesProps {
   data: JSONValue[] | undefined
   onQuerySelect: (query: string) => void
   isLoading: boolean // True if status is 'submitted' or 'streaming'
+  isSearchMode: boolean
   chatId?: string
   addToolResult?: (params: { toolCallId: string; result: any }) => void
   /** Ref for anchoring auto-scroll position */
@@ -34,6 +35,7 @@ export function ChatMessages({
   data,
   onQuerySelect,
   isLoading,
+  isSearchMode,
   chatId,
   addToolResult,
   anchorRef,
@@ -134,8 +136,8 @@ ChatMessagesProps) {
     }))
   }
 
-  // Show ToolSection (which renders SearchSection) while an active search tool invocation is in progress
-  const shouldShowToolSection = lastToolData !== null;
+  // Show ToolSection (which renders SearchSection) while an active search tool invocation is in progress and search mode is enabled
+  const shouldShowToolSection = lastToolData !== null && isSearchMode
 
   return (
     <div

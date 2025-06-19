@@ -6,10 +6,11 @@ import { CHAT_ID } from '@/lib/constants'
 import { useAutoScroll } from '@/lib/hooks/use-auto-scroll'
 import { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
+import { getCookie } from '@/lib/utils/cookies'
 import { ChatRequestOptions } from 'ai'
 import { Message } from 'ai/react'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useRef, useTransition } from 'react'
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { ChatMessages } from './chat-messages'
 import { ChatPanel } from './chat-panel'
@@ -26,6 +27,7 @@ export function Chat({
   query?: string
   models?: Model[]
 }) {
+  const [isSearchMode, setIsSearchMode] = useState(true)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -157,6 +159,14 @@ export function Chat({
     scrollContainer: scrollContainerRef,
     threshold: 70
   })
+
+  useEffect(() => {
+    // Restore search mode from cookies
+    const savedMode = getCookie('search-mode')
+    if (savedMode !== null) {
+      setIsSearchMode(savedMode === 'true')
+    }
+  }, [])
 
   useEffect(() => {
     setMessages(savedMessages)
@@ -392,6 +402,7 @@ export function Chat({
         scrollContainerRef={scrollContainerRef}
         onUpdateMessage={handleUpdateAndReloadMessage}
         reload={handleReloadFrom}
+        isSearchMode={isSearchMode}
       />
       <ChatPanel
         input={input}
@@ -405,6 +416,10 @@ export function Chat({
         append={appendWithUrlUpdate}
         models={models}
         isAutoScroll={isAutoScroll}
+        reload={handleReloadFrom}
+        isGenerating={isGeneratingRef.current}
+        isSearchMode={isSearchMode}
+        onSearchModeChange={setIsSearchMode}
       />
     </div>
   )
