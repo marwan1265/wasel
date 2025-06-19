@@ -173,6 +173,7 @@ ChatMessagesProps) {
             isOpen={getIsOpen(manualToolCallId)}
             onOpenChange={open => handleOpenChange(manualToolCallId, open)}
             addToolResult={addToolResult}
+            isLoading={isLoading}
           />
         )}
         {shouldShowGenericSpinner && (
