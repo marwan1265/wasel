@@ -1,7 +1,9 @@
 'use client'
 
 import { useArtifact } from '@/components/artifact/artifact-context'
+import { CHAT_ID } from '@/lib/constants'
 import type { SearchResults as TypeSearchResults } from '@/lib/types'
+import { useChat } from '@ai-sdk/react'
 import { ToolInvocation } from 'ai'
 import { CollapsibleMessage } from './collapsible-message'
 import { SearchSkeleton } from './default-skeleton'
@@ -21,7 +23,12 @@ export function SearchSection({
   isOpen,
   onOpenChange
 }: SearchSectionProps) {
+  const { status } = useChat({
+    id: CHAT_ID
+  })
+  const isLoading = status === 'submitted' || status === 'streaming'
   const isToolLoading = tool.state === 'call'
+  
   const searchResults: TypeSearchResults =
     tool.state === 'result' ? tool.result : undefined
   const query = tool.args?.query as string | undefined
@@ -64,7 +71,7 @@ export function SearchSection({
             />
           </Section>
         )}
-      {isToolLoading ? (
+      {isLoading && isToolLoading ? (
         <div>
           <GlowLoadingText text="جاري البحث..." className="mb-3" />
           <SearchSkeleton />

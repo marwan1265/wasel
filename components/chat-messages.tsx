@@ -5,7 +5,6 @@ import { ChatRequestOptions, JSONValue, Message, ToolInvocation } from 'ai'
 import { useEffect, useMemo, useState } from 'react'
 import { GlowLoadingText } from './glow-loading-text'
 import { RenderMessage } from './render-message'
-import { ToolSection } from './tool-section'
 
 interface ChatMessagesProps {
   messages: Message[]
@@ -150,9 +149,6 @@ ChatMessagesProps) {
     }))
   }
 
-  // Show ToolSection (which renders SearchSection) while an active search tool invocation is in progress and search mode is enabled
-  const shouldShowToolSection = lastToolData !== null && isSearchMode
-
   return (
     <div
       id="scroll-container"
@@ -180,15 +176,6 @@ ChatMessagesProps) {
             />
           </div>
         ))}
-        {shouldShowToolSection && lastToolData && (
-          <ToolSection
-            key={manualToolCallId}
-            tool={lastToolData}
-            isOpen={getIsOpen(manualToolCallId)}
-            onOpenChange={open => handleOpenChange(manualToolCallId, open)}
-            addToolResult={addToolResult}
-          />
-        )}
         {shouldShowGenericSpinner && (
           <GlowLoadingText text="جاري التحميل..." />
         )}
