@@ -414,6 +414,7 @@ export function Chat({
         isSearchMode={isSearchMode}
         onSearchModeChange={setIsSearchMode}
         setMessages={setMessages}
+        isAutoScroll={isAutoScroll}
       />
     </div>
   )
