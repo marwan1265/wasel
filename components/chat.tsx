@@ -413,6 +413,7 @@ export function Chat({
         isLoading={isLoading}
         isSearchMode={isSearchMode}
         onSearchModeChange={setIsSearchMode}
+        setMessages={setMessages}
       />
     </div>
   )
