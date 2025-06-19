@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { ChatRequestOptions, JSONValue, Message, ToolInvocation } from 'ai'
+import { ChatRequestOptions, JSONValue, Message } from 'ai'
 import { useEffect, useMemo, useState } from 'react'
 import { GlowLoadingText } from './glow-loading-text'
 import { RenderMessage } from './render-message'
@@ -12,7 +12,6 @@ interface ChatMessagesProps {
   data: JSONValue[] | undefined
   onQuerySelect: (query: string) => void
   isLoading: boolean // True if status is 'submitted' or 'streaming'
-  isSearchMode: boolean
   chatId?: string
   addToolResult?: (params: { toolCallId: string; result: any }) => void
   /** Ref for anchoring auto-scroll position */
@@ -35,7 +34,6 @@ export function ChatMessages({
   data,
   onQuerySelect,
   isLoading,
-  isSearchMode,
   chatId,
   addToolResult,
   anchorRef,
@@ -75,45 +73,28 @@ ChatMessagesProps) {
     };
   }, [isLoading]);
 
-  // Extract last tool invocation from messages, if any
+  // Extract last tool invocation (call state) from messages, if any
   const lastToolData = useMemo(() => {
-    const lastMessage = messages[messages.length - 1]
-    if (lastMessage?.role !== 'assistant') return null
-
-    // First, try to find in `parts` (newer API)
-    if (lastMessage.parts) {
-      for (let j = lastMessage.parts.length - 1; j >= 0; j--) {
-        const part = lastMessage.parts[j]
-        if (part.type === 'tool-invocation' && part.toolInvocation.toolName === 'search') {
-          return part.toolInvocation
+    // Find last assistant message with parts containing tool-invocation
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i]
+      if (msg.role !== 'assistant') continue
+      // @ts-ignore
+      const parts: any[] | undefined = msg.parts
+      if (!parts) continue
+      // Find last tool invocation part without result (call state)
+      for (let j = parts.length - 1; j >= 0; j--) {
+        const part = parts[j]
+        if (part.type === 'tool-invocation') {
+          const tool = part.toolInvocation
+          if (tool.toolName === 'search' && tool.state === 'call') {
+            return tool
+          }
         }
       }
     }
-
-    // Fallback to `annotations` (older API)
-    if (lastMessage.annotations) {
-      const toolAnnotations = lastMessage.annotations.filter(
-        a => (a as any).type === 'tool_call' && (a as any).data?.toolName === 'search'
-      ) as any[]
-
-      if (toolAnnotations.length > 0) {
-        const lastToolAnnotation = toolAnnotations[toolAnnotations.length - 1]
-        const toolData = lastToolAnnotation.data
-        return {
-          ...toolData,
-          args: toolData.args ? JSON.parse(toolData.args) : {},
-          result: toolData.result && toolData.result !== 'undefined'
-            ? JSON.parse(toolData.result)
-            : undefined
-        } as ToolInvocation
-      }
-    }
-
     return null
   }, [messages])
-
-  // Show ToolSection (which renders SearchSection) while an active search tool invocation is in progress and search mode is enabled
-  const shouldShowToolSection = lastToolData !== null && isSearchMode;
 
   if (!messages.length) return null
 
@@ -153,6 +134,9 @@ ChatMessagesProps) {
     }))
   }
 
+  // Show ToolSection (which renders SearchSection) while an active search tool invocation is in progress
+  const shouldShowToolSection = lastToolData !== null;
+
   return (
     <div
       id="scroll-container"
@@ -177,7 +161,6 @@ ChatMessagesProps) {
               addToolResult={addToolResult}
               onUpdateMessage={onUpdateMessage}
               reload={reload}
-              isLoading={isLoading}
             />
           </div>
         ))}
@@ -188,11 +171,14 @@ ChatMessagesProps) {
             isOpen={getIsOpen(manualToolCallId)}
             onOpenChange={open => handleOpenChange(manualToolCallId, open)}
             addToolResult={addToolResult}
-            isLoading={isLoading}
           />
         )}
         {shouldShowGenericSpinner && (
-          <GlowLoadingText text="جاري التحميل..." />
+          lastToolData ? (
+            <GlowLoadingText text="جاري البحث..." />
+          ) : (
+            <GlowLoadingText text="جاري التحميل..." />
+          )
         )}
         <div ref={anchorRef} />
       </div>

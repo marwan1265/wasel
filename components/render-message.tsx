@@ -19,7 +19,6 @@ interface RenderMessageProps {
     messageId: string,
     options?: ChatRequestOptions
   ) => Promise<string | null | undefined>
-  isLoading: boolean
 }
 
 export function RenderMessage({
@@ -31,8 +30,7 @@ export function RenderMessage({
   chatId,
   addToolResult,
   onUpdateMessage,
-  reload,
-  isLoading
+  reload
 }: RenderMessageProps) {
   const relatedQuestions = useMemo(
     () =>
@@ -120,7 +118,6 @@ export function RenderMessage({
             isOpen={getIsOpen(tool.toolCallId)}
             onOpenChange={open => onOpenChange(tool.toolCallId, open)}
             addToolResult={addToolResult}
-            isLoading={isLoading}
           />
         )
       })}
@@ -139,7 +136,6 @@ export function RenderMessage({
                   onOpenChange(part.toolInvocation.toolCallId, open)
                 }
                 addToolResult={addToolResult}
-                isLoading={isLoading}
               />
             )
           case 'text':

@@ -1,5 +1,6 @@
 'use client'
 
+import { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
 import { Message } from 'ai'
 import { ArrowUp, ChevronDown, Square } from 'lucide-react'
@@ -15,45 +16,52 @@ import { Button } from './ui/button'
 import { IconLogo } from './ui/icons'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
-export interface ChatPanelProps {
+interface ChatPanelProps {
   input: string
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
+  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void
   isLoading: boolean
   messages: Message[]
   setMessages: (messages: Message[]) => void
+  query?: string
   stop: () => void
-  isSearchMode: boolean
-  onSearchModeChange: (value: boolean) => void
+  append: (message: any) => void
+  models?: Model[]
+  /** Whether auto-scroll is currently active (at bottom) */
   isAutoScroll: boolean
 }
 
 export function ChatPanel({
   input,
   handleInputChange,
-  onSubmit,
+  handleSubmit,
   isLoading,
   messages,
   setMessages,
+  query,
   stop,
-  isSearchMode,
-  onSearchModeChange,
+  append,
+  models,
   isAutoScroll
 }: ChatPanelProps) {
   const [showEmptyScreen, setShowEmptyScreen] = useState(false)
   const router = useRouter()
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const [isComposing, setIsComposing] = useState(false)
-  const [enterDisabled, setEnterDisabled] = useState(false)
+  const isFirstRender = useRef(true)
+  const [isComposing, setIsComposing] = useState(false) // Composition state
+  const [enterDisabled, setEnterDisabled] = useState(false) // Disable Enter after composition ends
   const { close: closeArtifact } = useArtifact()
   const [isMobile, setIsMobile] = useState(false)
 
+  // Check if we're on mobile
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768)
     }
+    
     checkMobile()
     window.addEventListener('resize', checkMobile)
+    
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
@@ -75,16 +83,32 @@ export function ChatPanel({
 
   const isToolInvocationInProgress = () => {
     if (!messages.length) return false
+
     const lastMessage = messages[messages.length - 1]
     if (lastMessage.role !== 'assistant' || !lastMessage.parts) return false
+
     const parts = lastMessage.parts
     const lastPart = parts[parts.length - 1]
+
     return (
       lastPart?.type === 'tool-invocation' &&
       lastPart?.toolInvocation?.state === 'call'
     )
   }
 
+  // if query is not empty, submit the query
+  useEffect(() => {
+    if (isFirstRender.current && query && query.trim().length > 0) {
+      append({
+        role: 'user',
+        content: query
+      })
+      isFirstRender.current = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query])
+
+  // Add scroll to bottom handler
   const handleScrollToBottom = () => {
     const scrollContainer = document.getElementById('scroll-container')
     if (scrollContainer) {
@@ -110,10 +134,13 @@ export function ChatPanel({
   const submitButton = (
     <Button
       type={isLoading ? 'button' : 'submit'}
-      size="icon"
-      variant="outline"
+      size={'icon'}
+      variant={'outline'}
       className={cn(isLoading && 'animate-pulse', 'rounded-full hover:border-foreground')}
-      disabled={(input.length === 0 && !isLoading) || isToolInvocationInProgress()}
+      disabled={
+        (input.length === 0 && !isLoading) ||
+        isToolInvocationInProgress()
+      }
       onClick={isLoading ? stop : undefined}
     >
       {isLoading ? <Square size={20} /> : <ArrowUp size={20} />}
@@ -125,7 +152,7 @@ export function ChatPanel({
       className={cn(
         'w-full bg-background group/form-container shrink-0 overflow-hidden',
         messages.length > 0 ? 'sticky bottom-0 px-2 pb-4' : 'px-6',
-        'safe-area-bottom'
+        'safe-area-bottom' // Ensure it respects safe areas on mobile
       )}
     >
       {messages.length === 0 && (
@@ -137,20 +164,23 @@ export function ChatPanel({
         </div>
       )}
       <form
-        onSubmit={e => {
+        onSubmit={(e) => {
           if (isLoading || isToolInvocationInProgress()) {
             e.preventDefault()
             return
           }
-          onSubmit(e)
+          handleSubmit(e)
         }}
-        className="max-w-3xl w-full mx-auto relative overflow-visible"
+        className={cn('max-w-3xl w-full mx-auto relative overflow-visible')}
       >
+        {/* Add scroll-down button to ChatPanel right top - show when not auto scrolling */}
         {!isAutoScroll && messages.length > 0 && (
           <>
             {!isMobile ? (
               <Tooltip>
-                <TooltipTrigger asChild>{scrollButton}</TooltipTrigger>
+                <TooltipTrigger asChild>
+                  {scrollButton}
+                </TooltipTrigger>
                 <TooltipContent>
                   <p>الأسفل</p>
                 </TooltipContent>
@@ -161,7 +191,7 @@ export function ChatPanel({
           </>
         )}
 
-        <div className="relative flex flex-col w-full gap-2 bg-muted rounded-3xl border border-input focus-within:ring-0">
+        <div className="relative flex flex-col w-full gap-2 bg-muted rounded-3xl border border-input">
           <Textarea
             ref={inputRef}
             name="input"
@@ -179,7 +209,12 @@ export function ChatPanel({
               setShowEmptyScreen(e.target.value.length === 0)
             }}
             onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey && !isComposing && !enterDisabled) {
+              if (
+                e.key === 'Enter' &&
+                !e.shiftKey &&
+                !isComposing &&
+                !enterDisabled
+              ) {
                 if (input.trim().length === 0 || isLoading || isToolInvocationInProgress()) {
                   e.preventDefault()
                   return
@@ -193,15 +228,18 @@ export function ChatPanel({
             onBlur={() => setShowEmptyScreen(false)}
           />
 
+          {/* Bottom menu area */}
           <div className="flex items-center justify-between p-3">
             <div className="flex items-center gap-2">
               <DeepthinkToggle />
-              <SearchModeToggle isSearchMode={isSearchMode} onSearchModeChange={onSearchModeChange} />
+              <SearchModeToggle />
             </div>
             <div className="flex items-center gap-2">
               {!isMobile ? (
                 <Tooltip>
-                  <TooltipTrigger asChild>{submitButton}</TooltipTrigger>
+                  <TooltipTrigger asChild>
+                    {submitButton}
+                  </TooltipTrigger>
                   <TooltipContent>
                     <p>{isLoading ? 'إيقاف' : 'إرسال'}</p>
                   </TooltipContent>
@@ -213,6 +251,7 @@ export function ChatPanel({
           </div>
         </div>
 
+        {/* Terms and Privacy Policy Links */}
         {messages.length === 0 && (
           <div className="mt-3 text-center">
             <p className="text-xs text-muted-foreground" dir="rtl">
@@ -229,6 +268,7 @@ export function ChatPanel({
           </div>
         )}
 
+        {/* AI Disclaimer - shown after messages are sent */}
         {messages.length > 0 && (
           <div className="mt-2 text-center">
             <p className="text-xs text-muted-foreground" dir="rtl">
