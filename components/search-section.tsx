@@ -14,14 +14,12 @@ interface SearchSectionProps {
   tool: ToolInvocation
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  isLoading: boolean
 }
 
 export function SearchSection({
   tool,
   isOpen,
-  onOpenChange,
-  isLoading
+  onOpenChange
 }: SearchSectionProps) {
   const isToolLoading = tool.state === 'call'
   const searchResults: TypeSearchResults =
@@ -66,7 +64,7 @@ export function SearchSection({
             />
           </Section>
         )}
-      {isLoading ? (
+      {isToolLoading ? (
         <div>
           <GlowLoadingText text="جاري البحث..." className="mb-3" />
           <SearchSkeleton />

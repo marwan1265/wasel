@@ -98,12 +98,6 @@ ChatMessagesProps) {
     return null
   }, [messages])
 
-  // This is the new derived state. It's true only when a tool call is the latest event AND the global state is loading.
-  const isToolRunning = useMemo(() => {
-    if (!isLoading || !lastToolData) return false
-    return lastToolData.state === 'call'
-  }, [isLoading, lastToolData])
-
   if (!messages.length) return null
 
   // Determine if the generic spinner should be shown
@@ -179,7 +173,6 @@ ChatMessagesProps) {
             isOpen={getIsOpen(manualToolCallId)}
             onOpenChange={open => handleOpenChange(manualToolCallId, open)}
             addToolResult={addToolResult}
-            isLoading={isToolRunning}
           />
         )}
         {shouldShowGenericSpinner && (
