@@ -9,6 +9,7 @@ import { ToolInvocation } from 'ai'
 import { useEffect, useState } from 'react'
 import { CollapsibleMessage } from './collapsible-message'
 import { SearchSkeleton } from './default-skeleton'
+import { GlowLoadingText } from './glow-loading-text'
 import { SearchResults } from './search-results'
 import { SearchResultsImageSection } from './search-results-image'
 import { Section, ToolArgsSection } from './section'
@@ -50,8 +51,8 @@ export function SearchSection({
     ? ` [${includeDomains.join(', ')}]`
     : ''
 
-  // Show skeleton until search results arrive
-  const shouldShowSearching = !searchResults?.results || searchResults.results.length === 0
+  // Show loading when tool is in 'call' state or when no results yet
+  const shouldShowSearching = tool.state === 'call' || (!searchResults?.results || searchResults.results.length === 0)
 
   const { open } = useArtifact()
   const header = (
@@ -88,7 +89,10 @@ export function SearchSection({
           </Section>
         )}
       {shouldShowSearching ? (
-        <SearchSkeleton />
+        <div>
+          <GlowLoadingText text="جاري البحث..." className="mb-3" />
+          <SearchSkeleton />
+        </div>
       ) : searchResults?.results ? (
         <Section title="Sources">
           <SearchResults results={searchResults.results} />

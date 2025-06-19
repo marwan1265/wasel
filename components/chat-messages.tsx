@@ -73,7 +73,7 @@ ChatMessagesProps) {
     };
   }, [isLoading]);
 
-  // Extract last tool invocation (call state) from messages, if any
+  // Extract last tool invocation from messages, if any
   const lastToolData = useMemo(() => {
     // Find last assistant message with parts containing tool-invocation
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -82,12 +82,12 @@ ChatMessagesProps) {
       // @ts-ignore
       const parts: any[] | undefined = msg.parts
       if (!parts) continue
-      // Find last tool invocation part without result (call state)
+      // Find last tool invocation part (both call and result states)
       for (let j = parts.length - 1; j >= 0; j--) {
         const part = parts[j]
         if (part.type === 'tool-invocation') {
           const tool = part.toolInvocation
-          if (tool.toolName === 'search' && tool.state === 'call') {
+          if (tool.toolName === 'search') {
             return tool
           }
         }
@@ -174,11 +174,7 @@ ChatMessagesProps) {
           />
         )}
         {shouldShowGenericSpinner && (
-          lastToolData ? (
-            <GlowLoadingText text="جاري البحث..." />
-          ) : (
-            <GlowLoadingText text="جارٍ التحميل..." />
-          )
+          <GlowLoadingText text="جاري التحميل..." />
         )}
         <div ref={anchorRef} />
       </div>
