@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { ChatRequestOptions, JSONValue, Message } from 'ai'
+import { ChatRequestOptions, JSONValue, Message, ToolInvocation } from 'ai'
 import { useEffect, useMemo, useState } from 'react'
 import { GlowLoadingText } from './glow-loading-text'
 import { RenderMessage } from './render-message'
@@ -77,24 +77,38 @@ ChatMessagesProps) {
 
   // Extract last tool invocation from messages, if any
   const lastToolData = useMemo(() => {
-    // Find last assistant message with parts containing tool-invocation
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const msg = messages[i]
-      if (msg.role !== 'assistant') continue
-      // @ts-ignore
-      const parts: any[] | undefined = msg.parts
-      if (!parts) continue
-      // Find last tool invocation part (both call and result states)
-      for (let j = parts.length - 1; j >= 0; j--) {
-        const part = parts[j]
-        if (part.type === 'tool-invocation') {
-          const tool = part.toolInvocation
-          if (tool.toolName === 'search') {
-            return tool
-          }
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage?.role !== 'assistant') return null
+
+    // First, try to find in `parts` (newer API)
+    if (lastMessage.parts) {
+      for (let j = lastMessage.parts.length - 1; j >= 0; j--) {
+        const part = lastMessage.parts[j]
+        if (part.type === 'tool-invocation' && part.toolInvocation.toolName === 'search') {
+          return part.toolInvocation
         }
       }
     }
+
+    // Fallback to `annotations` (older API)
+    if (lastMessage.annotations) {
+      const toolAnnotations = lastMessage.annotations.filter(
+        a => (a as any).type === 'tool_call' && (a as any).data?.toolName === 'search'
+      ) as any[]
+
+      if (toolAnnotations.length > 0) {
+        const lastToolAnnotation = toolAnnotations[toolAnnotations.length - 1]
+        const toolData = lastToolAnnotation.data
+        return {
+          ...toolData,
+          args: toolData.args ? JSON.parse(toolData.args) : {},
+          result: toolData.result && toolData.result !== 'undefined'
+            ? JSON.parse(toolData.result)
+            : undefined
+        } as ToolInvocation
+      }
+    }
+
     return null
   }, [messages])
 
