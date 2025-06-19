@@ -66,7 +66,7 @@ export function SearchSection({
             />
           </Section>
         )}
-      {isLoading && isToolLoading ? (
+      {isLoading ? (
         <div>
           <GlowLoadingText text="جاري البحث..." className="mb-3" />
           <SearchSkeleton />
