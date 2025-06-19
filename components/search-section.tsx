@@ -1,9 +1,7 @@
 'use client'
 
 import { useArtifact } from '@/components/artifact/artifact-context'
-import { CHAT_ID } from '@/lib/constants'
 import type { SearchResults as TypeSearchResults } from '@/lib/types'
-import { useChat } from '@ai-sdk/react'
 import { ToolInvocation } from 'ai'
 import { CollapsibleMessage } from './collapsible-message'
 import { SearchSkeleton } from './default-skeleton'
@@ -16,17 +14,15 @@ interface SearchSectionProps {
   tool: ToolInvocation
   isOpen: boolean
   onOpenChange: (open: boolean) => void
+  isLoading: boolean
 }
 
 export function SearchSection({
   tool,
   isOpen,
-  onOpenChange
+  onOpenChange,
+  isLoading
 }: SearchSectionProps) {
-  const { status } = useChat({
-    id: CHAT_ID
-  })
-  const isLoading = status === 'submitted' || status === 'streaming'
   const isToolLoading = tool.state === 'call'
   
   const searchResults: TypeSearchResults =
