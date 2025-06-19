@@ -118,6 +118,7 @@ export function RenderMessage({
             isOpen={getIsOpen(tool.toolCallId)}
             onOpenChange={open => onOpenChange(tool.toolCallId, open)}
             addToolResult={addToolResult}
+            isLoading={tool.state === 'call'}
           />
         )
       })}
@@ -136,6 +137,7 @@ export function RenderMessage({
                   onOpenChange(part.toolInvocation.toolCallId, open)
                 }
                 addToolResult={addToolResult}
+                isLoading={part.toolInvocation.state === 'call'}
               />
             )
           case 'text':
