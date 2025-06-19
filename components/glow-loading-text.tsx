@@ -10,10 +10,17 @@ interface GlowLoadingTextProps {
 export function GlowLoadingText({ text, className }: GlowLoadingTextProps) {
   return (
     <div className={cn('py-2', className)}>
-      <span className="relative inline-block overflow-hidden select-none text-sm font-medium text-muted-foreground/70">
+      <span className="relative inline-block text-sm font-medium text-muted-foreground/80 overflow-hidden">
         {text}
-        {/* Sliding highlight */}
-        <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-foreground/60 to-transparent bg-clip-text text-transparent w-full h-full animate-slide-gradient" />
+        {/* Shimmer effect overlay */}
+        <span 
+          className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-foreground/50 to-transparent animate-shimmer"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+            maskImage: `linear-gradient(90deg, transparent 0%, black 20%, black 80%, transparent 100%)`,
+            WebkitMaskImage: `linear-gradient(90deg, transparent 0%, black 20%, black 80%, transparent 100%)`
+          }}
+        />
       </span>
     </div>
   )

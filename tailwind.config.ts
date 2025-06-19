@@ -128,24 +128,33 @@ const config = {
   					opacity: '1'
   				}
   			},
-  			'slide-out-right': {
-  				from: {
-  					transform: 'translateX(0)',
-  					opacity: '1'
-  				},
-  				to: {
-  					transform: 'translateX(100%)',
-  					opacity: '0'
-  				}
-  			}
+  						'slide-out-right': {
+				from: {
+					transform: 'translateX(0)',
+					opacity: '1'
+				},
+				to: {
+					transform: 'translateX(100%)',
+					opacity: '0'
+				}
+			},
+			'shimmer': {
+				'0%': {
+					transform: 'translateX(100%)'
+				},
+				'100%': {
+					transform: 'translateX(-100%)'
+				}
+			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
   			'collapse-down': 'collapse-down 0.1s ease-in-out',
   			'collapse-up': 'collapse-up 0.1s ease-in-out',
-  			'slide-in-right': 'slide-in-right 0.2s ease-out',
-  			'slide-out-right': 'slide-out-right 0.2s ease-out'
+  						'slide-in-right': 'slide-in-right 0.2s ease-out',
+			'slide-out-right': 'slide-out-right 0.2s ease-out',
+			'shimmer': 'shimmer 2s ease-in-out infinite'
   		},
   		fontFamily: {
   			sans: [
