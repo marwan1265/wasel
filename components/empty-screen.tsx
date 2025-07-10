@@ -1,24 +1,10 @@
-import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
+'use client'
 
-const exampleMessages = [
-  {
-    heading: 'ما هو DeepSeek R1؟',
-    message: 'ما هو DeepSeek R1؟'
-  },
-  {
-    heading: 'لماذا تنمو شركة Nvidia بسرعة؟',
-    message: 'لماذا تنمو شركة Nvidia بسرعة؟'
-  },
-  {
-    heading: 'تسلا مقابل ريفيان',
-    message: 'تسلا مقابل ريفيان'
-  },
-  {
-    heading: 'ملخص: https://arxiv.org/pdf/2501.05707',
-    message: 'ملخص: https://arxiv.org/pdf/2501.05707'
-  }
-]
+import { Button } from '@/components/ui/button'
+import { ExampleQuestion, getExampleQuestions } from '@/lib/utils/example-questions'
+import { ArrowLeft } from 'lucide-react'
+import { useEffect, useState } from 'react'
+
 export function EmptyScreen({
   submitMessage,
   className
@@ -26,6 +12,16 @@ export function EmptyScreen({
   submitMessage: (message: string) => void
   className?: string
 }) {
+  const [exampleMessages, setExampleMessages] = useState<ExampleQuestion[]>([])
+
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      const questions = await getExampleQuestions()
+      setExampleMessages(questions)
+    }
+    fetchQuestions()
+  }, [])
+
   return (
     <div className={`mx-auto w-full transition-all ${className}`}>
       <div className="bg-background p-2">
