@@ -49,3 +49,6 @@ DEEPTHINK-TIMEOUT-TESTING.md
 
 # Database backups
 *.backup
+# Service account credentials must never be committed
+*service-account*.json
+gcp-*.json
