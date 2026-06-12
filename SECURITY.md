@@ -4,8 +4,11 @@ We take the security of this project seriously. Please follow the guidance below
 
 ## Reporting a Vulnerability
 
-- Preferred: Open a private security advisory on GitHub (Security tab → “Report a vulnerability”).
-- Alternative: Email the maintainers at security@example.com.
+- Please report vulnerabilities privately via
+  [GitHub Security Advisories](https://github.com/marwan1265/wasel_v2/security/advisories/new)
+  (Security tab → "Report a vulnerability").
+- Do **not** report security issues through public GitHub issues, discussions,
+  or pull requests.
 
 Please include:
 - A description of the issue and potential impact

@@ -1,6 +1,3 @@
-# Project Title
-// Minor change to trigger a new commit
-
 # Wasel
 
 An AI-powered search engine with a generative UI.
@@ -13,6 +10,7 @@ An AI-powered search engine with a generative UI.
 - 🧱 [Stack](#-stack)
 - 🚀 [Quickstart](#-quickstart)
 - 🌐 [Deploy](#-deploy)
+- ⚙️ [Configuration](#%EF%B8%8F-configuration)
 - 🔎 [Search Engine](#-search-engine)
 - ✅ [Verified models](#-verified-models)
 - 👥 [Contributing](#-contributing)
@@ -82,7 +80,7 @@ Models are configured in `public/config/models.json`. Each model requires its co
 - [TypeScript](https://www.typescriptlang.org/) - Type safety
 - [Vercel AI SDK](https://sdk.vercel.ai/docs) - Text streaming / Generative UI
 
-### Authentication & Authorization (Updated Category)
+### Authentication & Authorization
 
 - [Supabase](https://supabase.com/) - User authentication and backend services
 
@@ -106,6 +104,34 @@ Models are configured in `public/config/models.json`. Each model requires its co
 - [Radix UI](https://www.radix-ui.com/) - Unstyled, accessible components
 - [Lucide Icons](https://lucide.dev/) - Beautiful & consistent icons
 
+
+## 🚀 Quickstart
+
+### Prerequisites
+
+- Node.js 20+ and npm
+- A [Supabase](https://supabase.com/) project (free tier works) — used for authentication
+- An API key for at least one AI provider (e.g. DeepSeek or OpenAI) and one
+  search provider (e.g. [Tavily](https://app.tavily.com/home))
+
+### Run locally
+
+```bash
+git clone https://github.com/marwan1265/wasel_v2.git
+cd wasel_v2
+npm install
+cp .env.local.example .env.local
+# Edit .env.local and set at minimum:
+#   NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
+#   an AI provider key (e.g. DEEPSEEK_API_KEY or OPENAI_API_KEY)
+#   TAVILY_API_KEY
+npm run dev
+```
+
+Open http://localhost:3000. Persistent chat history additionally requires
+Redis (local or Upstash) — see the
+[Configuration Guide](docs/CONFIGURATION.md). CAPTCHA is disabled by default
+for local development (see [Configuration](#%EF%B8%8F-configuration) below).
 
 ## 🌐 Deploy
 
@@ -192,7 +218,7 @@ This will allow you to use Wasel as your default search engine in the browser.
   - Gemini 2.0 Flash
 - Anthropic
   - Claude 3.5 Sonnet
-  - Claude 3.5 Hike
+  - Claude 3.5 Haiku
 - Ollama
   - qwen2.5
   - deepseek-r1
@@ -209,6 +235,14 @@ This will allow you to use Wasel as your default search engine in the browser.
   - grok-2
   - grok-2-vision
   - grok-3-beta
+
+## 👥 Contributing
+
+Contributions are welcome! Please read the
+[Contributing Guide](CONTRIBUTING.md) for how to set up your environment,
+the commit convention, and the pull request process. To report a security
+vulnerability, please follow the [Security Policy](SECURITY.md) instead of
+opening a public issue.
 
 ## License
 
