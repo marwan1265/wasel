@@ -47,10 +47,22 @@ export const useUserTier = () => {
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        if (session) {
-          setUserTierInfo(session.user.user_metadata.tier)
-        }
+      if (event === 'SIGNED_IN') {
+        // Refetch from the server: user_metadata.tier is never populated by
+        // this app, so deriving the tier from it marked everyone (including
+        // pro and anonymous guest users) as 'free' and overwrote the result
+        // of the initial /api/user/tier fetch.
+        // INITIAL_SESSION is intentionally ignored — the initial fetch above
+        // already covers it.
+        fetchUserTier()
+      } else if (event === 'SIGNED_OUT') {
+        setUserTierInfo({
+          tier: 'guest',
+          isGuest: true,
+          isUnknown: false,
+          isFree: false,
+          isPro: false
+        })
       }
     })
 

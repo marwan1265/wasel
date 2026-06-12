@@ -17,7 +17,7 @@ An AI-powered search engine with a generative UI.
 - ✅ [Verified models](#-verified-models)
 - 👥 [Contributing](#-contributing)
 
-📝 Explore AI-generated documentation on [DeepWiki](https://deepwiki.com/miurla/morphic)
+📝 Explore AI-generated documentation on [DeepWiki](https://deepwiki.com/marwan1265/wasel_v2)
 
 ## 🛠 Features
 
@@ -111,22 +111,22 @@ Models are configured in `public/config/models.json`. Each model requires its co
 
 ### Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmiurla%2Fmorphic&env=OPENAI_API_KEY,TAVILY_API_KEY,UPSTASH_REDIS_REST_URL,UPSTASH_REDIS_REST_TOKEN)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmarwan1265%2Fwasel_v2&env=OPENAI_API_KEY,TAVILY_API_KEY,UPSTASH_REDIS_REST_URL,UPSTASH_REDIS_REST_TOKEN)
 
-### Docker Prebuilt Image
+### Docker
 
-Prebuilt Docker images are available on GitHub Container Registry:
+Build the image from the included `Dockerfile`:
 
 ```bash
-docker pull ghcr.io/miurla/morphic:latest
+docker build -t wasel .
 ```
 
 You can use it with docker-compose:
 
 ```yaml
 services:
-  morphic:
-    image: ghcr.io/miurla/morphic:latest
+  wasel:
+    build: .
     env_file: .env.local
     ports:
       - '3000:3000'
@@ -192,4 +192,15 @@ This will allow you to use Wasel as your default search engine in the browser.
   - grok-2-vision
   - grok-3-beta
 
+## License
 
+This project is licensed under the [Apache License 2.0](LICENSE).
+
+## Acknowledgements
+
+Wasel is a fork of [Morphic](https://github.com/miurla/morphic), an
+AI-powered answer engine created by [Yoshiki Miura](https://github.com/miurla).
+Morphic is licensed under the Apache License 2.0 (Copyright 2024 Yoshiki Miura).
+Wasel adds Arabic localization, multi-provider LLM support, tiered
+authentication, Redis-backed rate limiting, and dual-layer storage on top of
+that foundation. See the [NOTICE](NOTICE) file for attribution details.

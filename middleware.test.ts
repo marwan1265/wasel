@@ -1,5 +1,8 @@
 import { CHAT_MESSAGE_ACTION, GENERAL_API_ACTION } from '@/lib/config/rate-limits';
-import { checkRateLimit } from '@/lib/rate-limiter';
+// middleware.ts uses the atomic rate limiter — mocking the legacy
+// '@/lib/rate-limiter' module left the real limiter running (and timing out)
+// in every test.
+import { checkRateLimitAtomic as checkRateLimit } from '@/lib/rate-limiter-atomic';
 import { checkRequestDuplicate, generateRequestFingerprint } from '@/lib/rate-limiter-dedup';
 import { afterEach, beforeEach, describe, expect, jest, test } from '@jest/globals';
 import { createServerClient } from '@supabase/ssr';
@@ -8,7 +11,7 @@ import { NextRequest } from 'next/server';
 import { middleware } from './middleware';
 
 // Mock dependencies
-jest.mock('@/lib/rate-limiter');
+jest.mock('@/lib/rate-limiter-atomic');
 jest.mock('@/lib/rate-limiter-dedup');
 jest.mock('@supabase/ssr');
 
@@ -192,13 +195,14 @@ describe('Rate Limiting Middleware', () => {
       expect(checkRequestDuplicate).toHaveBeenCalledWith('fingerprint123');
     });
 
-    test('should skip rate limiting for duplicate requests', async () => {
+    test('should still rate limit duplicate requests', async () => {
+      // Duplicates are logged for observability but must not bypass limits
       mockedCheckRequestDuplicate.mockResolvedValue(true);
       
       const request = createRequest('/api/chat', 'POST');
-      await middleware(request);
+      const response = await middleware(request);
       
-      expect(checkRateLimit).not.toHaveBeenCalled();
+      expect(response.status).not.toBe(429);
     });
   });
 
@@ -420,7 +424,7 @@ describe('Rate Limiting Middleware', () => {
       await middleware(request);
       
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Duplicate request detected for user123:general_api_access, skipping rate limit')
+        expect.stringContaining('Duplicate request detected for user123:general_api_access')
       );
     });
 

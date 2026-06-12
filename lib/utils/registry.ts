@@ -148,7 +148,7 @@ export function getToolCallModel(model?: string) {
     case 'google':
       return getModel('google:gemini-2.0-flash')
     default:
-      return getModel('openai:gpt-4o-mini')
+      return getModel('deepseek:deepseek-chat')
   }
 }
 

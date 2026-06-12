@@ -101,27 +101,9 @@ async function setCachedResults(
   }
 }
 
-// Function to periodically clean up expired cache entries
-async function cleanupExpiredCache() {
-  try {
-    const client = await initializeRedisClient()
-    if (!client) return
-
-    const keys = await client.keys('search:*')
-    for (const key of keys) {
-      const ttl = await client.ttl(key)
-      if (ttl <= 0) {
-        await client.del(key)
-        console.log(`Removed expired cache entry: ${key}`)
-      }
-    }
-  } catch (error) {
-    console.error('Cache cleanup error:', error)
-  }
-}
-
-// Set up periodic cache cleanup
-setInterval(cleanupExpiredCache, CACHE_EXPIRATION_CHECK_INTERVAL)
+// Note: Cache cleanup is handled automatically by Redis TTL expiration.
+// Manual setInterval-based cleanup was removed as it is unreliable in
+// serverless environments and redundant with Redis native TTL management.
 
 export async function POST(request: Request) {
   const { query, maxResults, searchDepth, includeDomains, excludeDomains } =
@@ -395,6 +377,16 @@ async function crawlPage(
   }
 }
 
+// \b word boundaries only work for ASCII \w and never match Arabic (or any
+// non-Latin) words, which zeroed out scoring/highlighting for Arabic queries.
+// Use Unicode letter/digit lookarounds instead (Node runtime supports them).
+function buildWordRegex(escapedTerm: string, flags: string): RegExp {
+  return new RegExp(
+    `(?<![\\p{L}\\p{N}_])${escapedTerm}(?![\\p{L}\\p{N}_])`,
+    flags + 'u'
+  )
+}
+
 function highlightQueryTerms(content: string, query: string): string {
   try {
     const terms = query
@@ -406,7 +398,7 @@ function highlightQueryTerms(content: string, query: string): string {
     let highlightedContent = content
 
     terms.forEach(term => {
-      const regex = new RegExp(`\\b${term}\\b`, 'gi')
+      const regex = buildWordRegex(term, 'gi')
       highlightedContent = highlightedContent.replace(
         regex,
         match => `<mark>${match}</mark>`
@@ -438,7 +430,7 @@ function calculateRelevanceScore(result: SearXNGResult, query: string): number {
 
     // Check for individual word matches
     queryWords.forEach(word => {
-      const regex = new RegExp(`\\b${word}\\b`, 'g')
+      const regex = buildWordRegex(word, 'g')
       const wordCount = (lowercaseContent.match(regex) || []).length
       score += wordCount * 3
     })
@@ -450,7 +442,7 @@ function calculateRelevanceScore(result: SearXNGResult, query: string): number {
     }
 
     queryWords.forEach(word => {
-      const regex = new RegExp(`\\b${word}\\b`, 'g')
+      const regex = buildWordRegex(word, 'g')
       if (lowercaseTitle.match(regex)) {
         score += 10
       }

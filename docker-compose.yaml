@@ -1,16 +1,15 @@
-# Docker Compose configuration for the morphic-stack development environment
+# Docker Compose configuration for the wasel-stack development environment
 
-name: morphic-stack
+name: wasel-stack
 services:
-  morphic:
-    image: ghcr.io/${GITHUB_REPOSITORY:-your-username/morphic}:latest
-    command: bun start -H 0.0.0.0
+  wasel:
     build:
       context: .
       dockerfile: Dockerfile
       cache_from:
-        - morphic:builder
-        - morphic:latest
+        - wasel:builder
+        - wasel:latest
+    command: bun start -H 0.0.0.0
     env_file: .env.local # Load environment variables
     ports:
       - '3000:3000' # Maps port 3000 on the host to port 3000 in the container.

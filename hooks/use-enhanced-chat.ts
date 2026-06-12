@@ -17,7 +17,7 @@ export function useEnhancedChat(options: UseChatOptions): UseChatHelpers {
   const [messageQueue, setMessageQueue] = useState<QueuedMessage[]>([])
   const [isProcessingQueue, setIsProcessingQueue] = useState(false)
   const queueIdCounter = useRef(0)
-  const { input, handleSubmit: originalHandleSubmit, append } = chatHook
+  const { input, setInput, handleSubmit: originalHandleSubmit, append } = chatHook
 
   // Process the queue when auth becomes ready AND successful
   useEffect(() => {
@@ -26,16 +26,19 @@ export function useEnhancedChat(options: UseChatOptions): UseChatHelpers {
       
       // Process messages in order
       const processQueue = async () => {
-        console.log(`Processing ${messageQueue.length} queued messages`)
-        
-        for (const queuedMessage of messageQueue) {
+        // Snapshot what we process so messages queued *while* processing are
+        // not wiped by the cleanup below (they'd be silently lost).
+        const toProcess = [...messageQueue]
+        console.log(`Processing ${toProcess.length} queued messages`)
+
+        for (const queuedMessage of toProcess) {
           try {
             // Use append to add the user message directly
             await append({
               role: 'user',
               content: queuedMessage.content
             })
-            
+
             // Small delay between messages
             await new Promise(resolve => setTimeout(resolve, 100))
           } catch (error) {
@@ -43,9 +46,10 @@ export function useEnhancedChat(options: UseChatOptions): UseChatHelpers {
             // Continue with next message even if one fails
           }
         }
-        
-        // Clear the queue and stop processing
-        setMessageQueue([])
+
+        // Remove only the processed messages and stop processing
+        const processedIds = new Set(toProcess.map(message => message.id))
+        setMessageQueue(prev => prev.filter(message => !processedIds.has(message.id)))
         setIsProcessingQueue(false)
         console.log('Finished processing message queue')
       }
@@ -121,6 +125,7 @@ export function useEnhancedChat(options: UseChatOptions): UseChatHelpers {
       }
       
       setMessageQueue(prev => [...prev, queuedMessage])
+      setInput('') // Clear input field so user knows the message was accepted
       
       // Prevent the default form submission since we're handling it
       if (event?.preventDefault) {
@@ -133,7 +138,7 @@ export function useEnhancedChat(options: UseChatOptions): UseChatHelpers {
 
     // Fallback: send immediately
     originalHandleSubmit(event, chatRequestOptions)
-  }, [isAuthReady, isAuthSuccessful, isAuthPending, isProcessingQueue, originalHandleSubmit, input, authError])
+  }, [isAuthReady, isAuthSuccessful, isAuthPending, isProcessingQueue, originalHandleSubmit, input, setInput, authError])
 
   // Determine if we should show loading state
   const isLoadingEnhanced = chatHook.isLoading || 

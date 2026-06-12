@@ -52,7 +52,8 @@ export function ResendVerificationForm({
       return
     }
 
-    if (!turnstileToken) {
+    // Turnstile only enforced when a site key is configured (production).
+    if (turnstileSiteKey && !turnstileToken) {
       setResendError('Please complete the CAPTCHA challenge.')
       onError?.('Please complete the CAPTCHA challenge.')
       return
@@ -70,7 +71,8 @@ export function ResendVerificationForm({
         },
         body: JSON.stringify({
           email: email,
-          captchaToken: turnstileToken
+          // When Turnstile is disabled, use the server's existing bypass token
+          captchaToken: turnstileSiteKey ? turnstileToken : 'bypass-for-resend'
         })
       })
 
@@ -94,15 +96,10 @@ export function ResendVerificationForm({
     }
   }
 
-  const isButtonDisabled = isResending || !email.trim() || countdown > 0 || !turnstileToken
+  const isButtonDisabled =
+    isResending || !email.trim() || countdown > 0 || (!!turnstileSiteKey && !turnstileToken)
 
-  if (!turnstileSiteKey) {
-    return (
-      <div className="text-center p-2 text-red-600 text-sm">
-        CAPTCHA configuration is missing. Please contact support.
-      </div>
-    )
-  }
+  // No site key configured → Turnstile disabled (optional); form still works.
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -122,22 +119,24 @@ export function ResendVerificationForm({
         />
       </div>
 
-      <div className="flex justify-center">
-        <Turnstile
-          ref={turnstileRef}
-          siteKey={turnstileSiteKey}
-          onSuccess={setTurnstileToken}
-          onError={() => {
-            setTurnstileToken(null)
-            setResendError('CAPTCHA verification failed. Please try again.')
-          }}
-          onExpire={() => {
-            setTurnstileToken(null)
-            setResendError('CAPTCHA expired. Please complete it again.')
-          }}
-        />
-      </div>
-      
+      {turnstileSiteKey && (
+        <div className="flex justify-center">
+          <Turnstile
+            ref={turnstileRef}
+            siteKey={turnstileSiteKey}
+            onSuccess={setTurnstileToken}
+            onError={() => {
+              setTurnstileToken(null)
+              setResendError('CAPTCHA verification failed. Please try again.')
+            }}
+            onExpire={() => {
+              setTurnstileToken(null)
+              setResendError('CAPTCHA expired. Please complete it again.')
+            }}
+          />
+        </div>
+      )}
+
       <Button
         onClick={handleResendVerification}
         disabled={isButtonDisabled}

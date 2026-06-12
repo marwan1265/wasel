@@ -66,7 +66,8 @@ export function createToolCallingStreamResponse(config: BaseStreamConfig) {
               chatId,
               dataStream,
               userId,
-              skipRelatedQuestions: shouldSkipRelatedQuestions
+              skipRelatedQuestions: shouldSkipRelatedQuestions,
+              skipSaveHistory: config.skipSaveHistory
             })
           },
           onChunk: event => {
@@ -88,7 +89,8 @@ export function createToolCallingStreamResponse(config: BaseStreamConfig) {
           error: error instanceof Error ? error : new Error(String(error)),
           chatId,
           userId,
-          context: 'Stream execution error'
+          context: 'Stream execution error',
+          skipSaveHistory: config.skipSaveHistory
         })
         
         throw error
@@ -103,7 +105,8 @@ export function createToolCallingStreamResponse(config: BaseStreamConfig) {
         error: error instanceof Error ? error : new Error(String(error)),
         chatId: config.chatId,
         userId: config.userId,
-        context: 'Stream onError callback'
+        context: 'Stream onError callback',
+        skipSaveHistory: config.skipSaveHistory
       }).catch(saveError => {
         console.error('Failed to save partial response on stream error:', saveError)
       })

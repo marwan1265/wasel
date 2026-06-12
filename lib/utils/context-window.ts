@@ -22,6 +22,20 @@ export function getMaxAllowedTokens(model: Model): number {
   return contextWindow - reserveTokens
 }
 
+// Estimate message size in characters. For array content (tool calls/results,
+// multimodal parts), `content.length` is the number of parts — not the size —
+// which let huge tool results slip past truncation untouched.
+function estimateMessageSize(message: CoreMessage): number {
+  if (typeof message.content === 'string') {
+    return message.content.length
+  }
+  try {
+    return JSON.stringify(message.content)?.length || 0
+  } catch {
+    return 0
+  }
+}
+
 export function truncateMessages(
   messages: CoreMessage[],
   maxTokens: number
@@ -31,7 +45,7 @@ export function truncateMessages(
 
   for (let i = messages.length - 1; i >= 0; i--) {
     const message = messages[i]
-    const messageTokens = message.content?.length || 0
+    const messageTokens = estimateMessageSize(message)
 
     if (totalTokens + messageTokens <= maxTokens) {
       tempMessages.push(message)
@@ -45,6 +59,16 @@ export function truncateMessages(
 
   while (orderedMessages.length > 0 && orderedMessages[0].role !== 'user') {
     orderedMessages.shift()
+  }
+
+  // Never return an empty list (the provider rejects empty message arrays):
+  // fall back to the most recent user message even if it exceeds the budget.
+  if (orderedMessages.length === 0) {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        return [messages[i]]
+      }
+    }
   }
 
   return orderedMessages

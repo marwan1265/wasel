@@ -13,6 +13,7 @@ interface HandleStreamFinishParams {
   userId: string
   skipRelatedQuestions?: boolean
   annotations?: ExtendedCoreMessage[]
+  skipSaveHistory?: boolean
 }
 
 // New function to handle partial saves on error/timeout
@@ -22,7 +23,8 @@ export async function handleStreamError({
   error,
   chatId,
   userId,
-  context
+  context,
+  skipSaveHistory
 }: {
   originalMessages: Message[]
   partialResponse?: string
@@ -30,11 +32,12 @@ export async function handleStreamError({
   chatId: string
   userId: string
   context?: string // Additional context about the error
+  skipSaveHistory?: boolean
 }): Promise<void> {
   try {
     console.log('[handleStreamError] Handling stream error for chatId:', chatId, 'Error:', error.message)
 
-    if (process.env.ENABLE_SAVE_CHAT_HISTORY !== 'true') {
+    if (skipSaveHistory || process.env.ENABLE_SAVE_CHAT_HISTORY !== 'true') {
       return
     }
 
@@ -120,39 +123,54 @@ export async function handleStreamFinish({
   dataStream,
   userId,
   skipRelatedQuestions = false,
-  annotations = []
+  annotations = [],
+  skipSaveHistory = false
 }: HandleStreamFinishParams) {
   try {
     const extendedCoreMessages = convertToExtendedCoreMessages(originalMessages)
     let allAnnotations = [...annotations]
 
     if (!skipRelatedQuestions) {
-      // Notify related questions loading
-      const relatedQuestionsAnnotation: JSONValue = {
-        type: 'related-questions',
-        data: { items: [] }
-      }
-      dataStream.writeMessageAnnotation(relatedQuestionsAnnotation)
-
-      // Generate related questions
-      const relatedQuestions = await generateRelatedQuestions(
-        responseMessages,
-        model
-      )
-
-      // Create and add related questions annotation
-      const updatedRelatedQuestionsAnnotation: ExtendedCoreMessage = {
-        role: 'data',
-        content: {
+      // Related questions are a nice-to-have: a failure here must not abort
+      // the chat save below, otherwise the whole completed response is lost.
+      try {
+        // Notify related questions loading
+        const relatedQuestionsAnnotation: JSONValue = {
           type: 'related-questions',
-          data: relatedQuestions.object
-        } as JSONValue
-      }
+          data: { items: [] }
+        }
+        dataStream.writeMessageAnnotation(relatedQuestionsAnnotation)
 
-      dataStream.writeMessageAnnotation(
-        updatedRelatedQuestionsAnnotation.content as JSONValue
-      )
-      allAnnotations.push(updatedRelatedQuestionsAnnotation)
+        // Generate related questions
+        const relatedQuestions = await generateRelatedQuestions(
+          responseMessages,
+          model
+        )
+
+        // Create and add related questions annotation
+        const updatedRelatedQuestionsAnnotation: ExtendedCoreMessage = {
+          role: 'data',
+          content: {
+            type: 'related-questions',
+            data: relatedQuestions.object
+          } as JSONValue
+        }
+
+        dataStream.writeMessageAnnotation(
+          updatedRelatedQuestionsAnnotation.content as JSONValue
+        )
+        allAnnotations.push(updatedRelatedQuestionsAnnotation)
+      } catch (relatedError) {
+        console.error(
+          '[handleStreamFinish] Failed to generate related questions (continuing with save):',
+          relatedError
+        )
+        // Clear the loading state on the client with an empty annotation
+        dataStream.writeMessageAnnotation({
+          type: 'related-questions',
+          data: { items: [] }
+        } as JSONValue)
+      }
     }
 
     // Create the complete message set to save
@@ -163,7 +181,7 @@ export async function handleStreamFinish({
       ...responseMessages.slice(-1)
     ] as ExtendedCoreMessage[]
 
-    if (process.env.ENABLE_SAVE_CHAT_HISTORY !== 'true') {
+    if (skipSaveHistory || process.env.ENABLE_SAVE_CHAT_HISTORY !== 'true') {
       return
     }
 
