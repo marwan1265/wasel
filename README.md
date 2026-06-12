@@ -136,6 +136,24 @@ services:
 
 The default model configuration is located at `public/config/models.json`. For Docker deployment, you can create `models.json` alongside `.env.local` to override the default configuration.
 
+## ⚙️ Configuration
+
+Copy `.env.local.example` to `.env.local` and fill in your keys (Supabase, your
+LLM provider(s), and a search provider at minimum).
+
+### CAPTCHA (Cloudflare Turnstile) — optional
+
+Bot protection on sign-up, login, and guest sessions is **optional** and
+controlled by a single variable:
+
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` **unset** (default): no CAPTCHA — auth works
+  out of the box for local development and self-hosting.
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` **set**: the Turnstile widget is shown and a
+  token is required for all auth flows (recommended for production). You must
+  also enable CAPTCHA protection with the matching **secret key** in your
+  Supabase project under Auth → Attack Protection, since Supabase performs the
+  actual verification.
+
 ## 🔎 Search Engine
 
 ### Setting up the Search Engine in Your Browser
