@@ -451,10 +451,14 @@ create policy "Backend can insert usage" on public.usage_log
   for insert to authenticated
   with check (user_id = auth.uid());
 
--- stripe_events: service role only
+-- stripe_events: service role only. RLS already blocks the client roles, but we
+-- also revoke the default table grants so this billing/webhook table is never
+-- part of the anon/authenticated API surface (defense in depth).
 create policy "Service role only" on public.stripe_events
   for all to authenticated
   using (auth.role() = 'service_role');
+
+revoke all on public.stripe_events from anon, authenticated;
 
 -- -----------------------------------------------------------------------------
 -- Storage: buckets and object policies
