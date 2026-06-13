@@ -110,7 +110,10 @@ Models are configured in `public/config/models.json`. Each model requires its co
 ### Prerequisites
 
 - Node.js 20+ and npm
-- A [Supabase](https://supabase.com/) project (free tier works) — used for authentication
+- A [Supabase](https://supabase.com/) project (free tier works) — used for
+  authentication, the application database, and file storage. Apply the schema
+  in `supabase/migrations/` to your project by following the
+  [Supabase Setup Guide](docs/SETUP_SUPABASE.md)
 - An API key for at least one AI provider (e.g. DeepSeek or OpenAI) and one
   search provider (e.g. [Tavily](https://app.tavily.com/home))
 

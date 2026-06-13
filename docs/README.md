@@ -6,6 +6,11 @@ Welcome to the Wasel v2 documentation. This directory contains comprehensive doc
 
 ### Core Documentation
 
+- **[Supabase Setup Guide](./SETUP_SUPABASE.md)** - Create a Supabase project and apply the database schema:
+  - Tables, RLS policies, functions, and triggers (`supabase/migrations/`)
+  - Storage buckets and policies
+  - Optional Vault-backed document-processing webhooks
+
 - **[Configuration Guide](./CONFIGURATION.md)** - Complete guide for configuring Wasel v2, including:
   - Chat history storage (Redis/Upstash)
   - Search providers (SearXNG setup)
@@ -59,6 +64,7 @@ To contribute to the documentation:
 ```
 docs/
 ├── README.md                      # This file - main documentation index
+├── SETUP_SUPABASE.md              # Supabase project and database schema setup
 ├── CONFIGURATION.md               # Application configuration guide
 └── RATE_LIMITING.md              # Comprehensive rate limiting documentation
 ```

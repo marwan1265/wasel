@@ -1,0 +1,515 @@
+-- =============================================================================
+-- Wasel — initial database schema
+-- =============================================================================
+-- Recreates the full application schema on a fresh Supabase project:
+--   tables, enums, indexes, functions, triggers, RLS policies, and storage
+--   buckets/policies.
+--
+-- How to apply (pick one):
+--   a) Supabase Dashboard → SQL Editor → paste this file → Run
+--   b) Supabase CLI:  supabase link --project-ref <your-ref>
+--                     supabase db push
+--
+-- See docs/SETUP_SUPABASE.md for the full walkthrough (including the optional
+-- Vault secrets used by the storage upload router).
+--
+-- This file contains no data, keys, or project-specific identifiers.
+-- =============================================================================
+
+-- -----------------------------------------------------------------------------
+-- Extensions
+-- -----------------------------------------------------------------------------
+-- pgvector lives in the *public* schema on purpose: match_document_chunks and
+-- the hnsw index use the <=> operator unqualified, which resolves via the
+-- public search_path. Installing vector into another schema breaks them.
+create extension if not exists vector with schema public;
+
+-- pg_net is used by handle_storage_upload_router to call Edge Functions.
+create extension if not exists pg_net with schema extensions;
+
+-- -----------------------------------------------------------------------------
+-- Enums
+-- -----------------------------------------------------------------------------
+create type public.document_status as enum ('processing', 'completed', 'failed');
+
+create type public.provider as enum ('stripe', 'apple');
+
+create type public.sub_status as enum (
+  'trialing', 'active', 'past_due', 'incomplete',
+  'paused', 'canceled', 'expired', 'duplicated'
+);
+
+-- -----------------------------------------------------------------------------
+-- Tables
+-- -----------------------------------------------------------------------------
+
+-- One row per auth user, created automatically by the handle_new_user trigger.
+create table public.profiles (
+  id         uuid primary key references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  email      text unique
+);
+
+create table public.conversations (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references public.profiles (id) on delete cascade,
+  title      text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  -- Non-null share_path makes the conversation publicly readable (see RLS).
+  share_path text,
+  path       text not null
+);
+
+create table public.messages (
+  id              uuid primary key default gen_random_uuid(),
+  conversation_id uuid not null references public.conversations (id) on delete cascade,
+  role            text not null,
+  content         text not null,
+  tokens          integer not null,
+  created_at      timestamptz not null default now(),
+  user_id         uuid not null references auth.users (id) on delete cascade
+);
+
+create table public.documents (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null references auth.users (id) on delete cascade,
+  file_path     text not null,
+  file_hash     text not null,
+  status        public.document_status not null default 'processing',
+  error_message text,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  constraint unique_file_hash unique (file_hash)
+);
+
+create table public.document_chunks (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users (id),
+  chat_id     uuid not null references public.conversations (id) on delete cascade,
+  content     text not null,
+  embedding   vector(768) not null,
+  created_at  timestamptz default now(),
+  document_id uuid not null,
+  constraint fk_document foreign key (document_id)
+    references public.documents (id) on delete cascade
+);
+
+create table public.subscriptions (
+  id                       uuid primary key default gen_random_uuid(),
+  user_id                  uuid not null references auth.users (id) on delete cascade,
+  provider                 public.provider not null,
+  provider_customer_id     text not null,
+  provider_subscription_id text not null unique,
+  status                   public.sub_status not null,
+  current_period_start     timestamptz not null,
+  current_period_end       timestamptz not null,
+  cancel_at_period_end     boolean default false,
+  canceled_at              timestamptz,
+  raw_payload              jsonb,
+  created_at               timestamptz not null default now(),
+  updated_at               timestamptz not null default now()
+);
+
+create table public.usage_log (
+  id         bigint generated by default as identity primary key,
+  user_id    uuid not null references public.profiles (id) on delete cascade,
+  endpoint   text not null,
+  created_at timestamptz not null default now()
+);
+
+-- Raw Stripe webhook events, for idempotent processing.
+create table public.stripe_events (
+  id              bigint generated by default as identity primary key,
+  stripe_event_id text not null unique,
+  payload         jsonb not null,
+  received_at     timestamptz not null default now(),
+  processed       boolean not null default false
+);
+
+-- -----------------------------------------------------------------------------
+-- Indexes
+-- -----------------------------------------------------------------------------
+create index idx_conversations_user on public.conversations (user_id);
+
+create index idx_messages_conv_time on public.messages (conversation_id, created_at desc);
+create index messages_user_created_idx on public.messages (user_id, created_at desc);
+
+create index idx_profiles_created_at on public.profiles (created_at);
+
+create index idx_document_chunks_document_id on public.document_chunks (document_id);
+create index document_chunks_embedding_idx on public.document_chunks
+  using hnsw (embedding vector_cosine_ops);
+
+-- A user may have at most one live subscription at a time.
+create unique index one_live_sub_per_user on public.subscriptions (user_id)
+  where status = any (array['trialing'::sub_status, 'active'::sub_status, 'past_due'::sub_status]);
+
+create index idx_usage_log_user_time on public.usage_log (user_id, created_at);
+create index usage_log_user_created_idx on public.usage_log (user_id, created_at desc);
+
+-- -----------------------------------------------------------------------------
+-- Functions
+-- -----------------------------------------------------------------------------
+
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+set search_path = public, pg_temp
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+-- Creates a profile row for every new auth user.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  insert into public.profiles (id, email)
+  values (new.id, new.email);
+  return new;
+end;
+$$;
+
+create or replace function public.check_one_active_subscription_per_user()
+returns trigger
+language plpgsql
+set search_path = public, pg_temp
+as $$
+begin
+    -- Only check when adding or changing to active/trialing status
+    if new.status in ('active', 'trialing') then
+        if exists (
+            select 1 from public.subscriptions
+            where user_id = new.user_id
+              and status in ('active', 'trialing')
+              and provider_subscription_id != new.provider_subscription_id
+        ) then
+            raise exception 'one_live_sub_per_user: User % already has an active subscription', new.user_id;
+        end if;
+    end if;
+    return new;
+end;
+$$;
+
+-- Vector similarity search over a conversation's document chunks (RAG).
+create or replace function public.match_document_chunks(
+  query_embedding vector,
+  match_chat_id uuid,
+  match_count integer
+)
+returns table (id uuid, content text, similarity double precision)
+language plpgsql
+set search_path = public, pg_temp
+as $$
+begin
+    return query
+    select
+        chunks.id,
+        chunks.content,
+        1 - (chunks.embedding <=> query_embedding) as similarity
+    from
+        public.document_chunks as chunks
+    where
+        chunks.chat_id = match_chat_id
+    order by
+        chunks.embedding <=> query_embedding
+    limit
+        match_count;
+end;
+$$;
+
+-- Routes new storage uploads to the document-processing Edge Functions.
+-- Reads the project URL and service-role key from Supabase Vault so no
+-- secrets live in the function body. If the Vault secrets are not set,
+-- the trigger is a no-op and uploads succeed without document processing.
+-- To enable, run (with your own values):
+--   select vault.create_secret('https://<your-ref>.supabase.co', 'project_url');
+--   select vault.create_secret('<your-service-role-key>', 'service_role_key');
+create or replace function public.handle_storage_upload_router()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  project_url text;
+  service_role_key text;
+  headers jsonb;
+  request_body jsonb;
+begin
+  select decrypted_secret into project_url
+    from vault.decrypted_secrets where name = 'project_url';
+  select decrypted_secret into service_role_key
+    from vault.decrypted_secrets where name = 'service_role_key';
+
+  -- If document-processing isn't configured for this project, skip silently
+  -- so the upload itself is never blocked.
+  if project_url is null or service_role_key is null then
+    return new;
+  end if;
+
+  headers := jsonb_build_object(
+    'Content-Type', 'application/json',
+    'Authorization', 'Bearer ' || service_role_key
+  );
+  request_body := jsonb_build_object('record', row_to_json(new));
+
+  if new.bucket_id = 'file-uploads' then
+    perform net.http_post(
+      url := project_url || '/functions/v1/on-document-upload',
+      headers := headers,
+      body := request_body
+    );
+  elsif new.bucket_id = 'files-preview' then
+    perform net.http_post(
+      url := project_url || '/functions/v1/on-document-upload-preview',
+      headers := headers,
+      body := request_body
+    );
+  end if;
+
+  return new;
+end;
+$$;
+
+-- Safety net: automatically enables RLS on any table created in public,
+-- so a forgotten "alter table ... enable row level security" can't leave
+-- data exposed through the API roles.
+create or replace function public.rls_auto_enable()
+returns event_trigger
+language plpgsql
+security definer
+set search_path = pg_catalog
+as $$
+declare
+  cmd record;
+begin
+  for cmd in
+    select *
+    from pg_event_trigger_ddl_commands()
+    where command_tag in ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
+      and object_type in ('table', 'partitioned table')
+  loop
+    if cmd.schema_name is not null and cmd.schema_name in ('public') then
+      begin
+        execute format('alter table if exists %s enable row level security', cmd.object_identity);
+        raise log 'rls_auto_enable: enabled RLS on %', cmd.object_identity;
+      exception
+        when others then
+          raise log 'rls_auto_enable: failed to enable RLS on %', cmd.object_identity;
+      end;
+    else
+      raise log 'rls_auto_enable: skip % (not in enforced schema list: %)', cmd.object_identity, cmd.schema_name;
+    end if;
+  end loop;
+end;
+$$;
+
+-- -----------------------------------------------------------------------------
+-- Triggers
+-- -----------------------------------------------------------------------------
+create trigger trg_profiles_set_updated_at
+  before update on public.profiles
+  for each row execute function public.set_updated_at();
+
+create trigger trg_conversations_set_updated_at
+  before update on public.conversations
+  for each row execute function public.set_updated_at();
+
+create trigger trg_subscriptions_set_updated_at
+  before update on public.subscriptions
+  for each row execute function public.set_updated_at();
+
+create trigger trg_check_one_active_subscription_per_user
+  before insert or update on public.subscriptions
+  for each row execute function public.check_one_active_subscription_per_user();
+
+create trigger on_auth_user_created_create_profile
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+create trigger on_new_file_upload
+  after insert on storage.objects
+  for each row execute function public.handle_storage_upload_router();
+
+create event trigger ensure_rls
+  on ddl_command_end
+  when tag in ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
+  execute function public.rls_auto_enable();
+
+-- -----------------------------------------------------------------------------
+-- Row Level Security
+-- -----------------------------------------------------------------------------
+alter table public.profiles        enable row level security;
+alter table public.conversations   enable row level security;
+alter table public.messages        enable row level security;
+alter table public.documents       enable row level security;
+alter table public.document_chunks enable row level security;
+alter table public.subscriptions   enable row level security;
+alter table public.usage_log       enable row level security;
+alter table public.stripe_events   enable row level security;
+
+-- profiles: owner only
+create policy "Own profile" on public.profiles
+  for all
+  using (id = auth.uid());
+
+-- conversations: owner full access; anyone may read shared conversations
+create policy "Own convos" on public.conversations
+  for all
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+create policy "Public can view shared conversations" on public.conversations
+  for select to anon, authenticated
+  using (share_path is not null);
+
+-- messages: owner full access (scoped through the parent conversation);
+-- anyone may read messages of shared conversations
+create policy "Own messages" on public.messages
+  for all
+  using (conversation_id in (
+    select conversations.id
+    from public.conversations
+    where conversations.user_id = auth.uid()
+  ));
+
+create policy "Insert own messages" on public.messages
+  for insert to authenticated
+  with check (
+    user_id = auth.uid()
+    and conversation_id in (
+      select conversations.id
+      from public.conversations
+      where conversations.user_id = auth.uid()
+    )
+  );
+
+create policy "Public can view shared messages" on public.messages
+  for select to anon, authenticated
+  using (conversation_id in (
+    select conversations.id
+    from public.conversations
+    where conversations.share_path is not null
+  ));
+
+-- documents: owner CRUD; service role bypass policies for the processing pipeline
+create policy "Allow users to select their own documents" on public.documents
+  for select to authenticated
+  using (auth.uid() = user_id);
+
+create policy "Allow users to insert their own documents" on public.documents
+  for insert to authenticated
+  with check (auth.uid() = user_id);
+
+create policy "Allow users to update their own documents" on public.documents
+  for update to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy "Allow users to delete their own documents" on public.documents
+  for delete to authenticated
+  using (auth.uid() = user_id);
+
+create policy "Allow service role to select documents" on public.documents
+  for select to service_role
+  using (true);
+
+create policy "Allow service role to insert documents" on public.documents
+  for insert to service_role
+  with check (true);
+
+create policy "Allow service role to update documents" on public.documents
+  for update to service_role
+  using (true)
+  with check (true);
+
+-- document_chunks: owner read/insert
+create policy "allow_select_for_own_chunks" on public.document_chunks
+  for select to authenticated
+  using (auth.uid() = user_id);
+
+create policy "allow_insert_for_own_chunks" on public.document_chunks
+  for insert to authenticated
+  with check (auth.uid() = user_id);
+
+-- subscriptions: owner read-only (writes happen via service role webhooks)
+create policy "Users can view their subscriptions" on public.subscriptions
+  for select to authenticated
+  using (user_id = auth.uid());
+
+-- usage_log: users may record their own usage
+create policy "Backend can insert usage" on public.usage_log
+  for insert to authenticated
+  with check (user_id = auth.uid());
+
+-- stripe_events: service role only
+create policy "Service role only" on public.stripe_events
+  for all to authenticated
+  using (auth.role() = 'service_role');
+
+-- -----------------------------------------------------------------------------
+-- Storage: buckets and object policies
+-- -----------------------------------------------------------------------------
+insert into storage.buckets (id, name, public)
+values
+  ('file-uploads', 'file-uploads', false),
+  ('files-preview', 'files-preview', false)
+on conflict (id) do nothing;
+
+-- file-uploads: per-user folders, named either <uid>/... or private/<uid>/...
+create policy "Allow authenticated uploads to own folder" on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'file-uploads'
+    and (storage.foldername(name))[1] = (auth.uid())::text
+  );
+
+create policy "Users can upload into their own folder" on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'file-uploads'
+    and owner = (select auth.uid())
+    and name like ('private/' || (select auth.uid())) || '/%'
+  );
+
+create policy "Allow users to read their own files" on storage.objects
+  for select to authenticated
+  using (
+    bucket_id = 'file-uploads'
+    and (storage.foldername(name))[1] = (auth.uid())::text
+  );
+
+create policy "Users can update their own files" on storage.objects
+  for update to authenticated
+  using (bucket_id = 'file-uploads' and owner = (select auth.uid()))
+  with check (bucket_id = 'file-uploads' and owner = (select auth.uid()));
+
+-- files-preview: owner-scoped objects
+create policy "Allow authenticated uploads to preview bucket" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'files-preview' and owner = (select auth.uid()));
+
+create policy "Allow users to read their own preview files" on storage.objects
+  for select to authenticated
+  using (bucket_id = 'files-preview' and owner = (select auth.uid()));
+
+create policy "Allow users to update their own preview files" on storage.objects
+  for update to authenticated
+  using (bucket_id = 'files-preview' and owner = (select auth.uid()));
+
+create policy "Allow users to delete their own preview files" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'files-preview' and owner = (select auth.uid()));
+
+create policy "Allow service role to select from preview bucket" on storage.objects
+  for select to service_role
+  using (bucket_id = 'files-preview');
