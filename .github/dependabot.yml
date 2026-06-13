@@ -11,9 +11,11 @@ updates:
         patterns: ["*"]
 
   # npm version updates. Security fixes are already handled automatically by
-  # Dependabot security updates; this keeps the rest current. Minor/patch
-  # bumps are grouped to minimise PR noise — remove this block if it's still
-  # too noisy and rely on security updates alone.
+  # Dependabot security updates (which still bump majors when a fix requires
+  # it); this keeps the rest current. Minor/patch bumps are grouped into one
+  # PR to minimise noise, and major version bumps are ignored — those tend to
+  # be breaking (e.g. tailwindcss 3->4, typescript 5->6) and should be done
+  # deliberately as their own migration, not auto-proposed.
   - package-ecosystem: npm
     directory: "/"
     schedule:
@@ -22,3 +24,6 @@ updates:
     groups:
       npm-minor-and-patch:
         update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
