@@ -11,7 +11,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^1.2.10",
+    "@ai-sdk/anthropic": "^3.0.84",
     "@ai-sdk/azure": "^1.1.5",
     "@ai-sdk/deepseek": "^0.1.6",
     "@ai-sdk/fireworks": "^0.1.6",
