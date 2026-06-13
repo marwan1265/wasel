@@ -48,7 +48,9 @@ export const RelatedQuestions: React.FC<RelatedQuestionsProps> = ({
     return null
   }
 
-  if (relatedQuestions.items.length === 0 && isLoading) {
+  // relatedQuestions can be undefined while streaming (annotation not yet
+  // received) — guard to avoid crashing the chat view.
+  if ((!relatedQuestions?.items || relatedQuestions.items.length === 0) && isLoading) {
     return (
       <CollapsibleMessage
         role="assistant"

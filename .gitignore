@@ -26,7 +26,12 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
+.env
 .env*.local
+.env.production
+.env.development
+.env.staging
+
 
 # vercel
 .vercel
@@ -41,3 +46,9 @@ next-env.d.ts
 test-changes.md
 test-timeout-handling.md
 DEEPTHINK-TIMEOUT-TESTING.md
+
+# Database backups
+*.backup
+# Service account credentials must never be committed
+*service-account*.json
+gcp-*.json

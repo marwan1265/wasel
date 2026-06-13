@@ -7,4 +7,5 @@ export interface BaseStreamConfig {
   chatId: string
   searchMode: boolean
   userId: string
+  skipSaveHistory?: boolean
 }

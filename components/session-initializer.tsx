@@ -27,14 +27,14 @@ export function SessionInitializer() {
     }));
   }, []);
 
-  const attemptAnonymousSignIn = useCallback(async (token: string) => {
+  const attemptAnonymousSignIn = useCallback(async (token?: string | null) => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInAnonymously({
-        options: {
-          captchaToken: token,
-        },
-      });
+      // Pass a captcha token only when Turnstile is configured; otherwise sign
+      // in anonymously without one (Turnstile is optional for local/self-host).
+      const { data, error } = await supabase.auth.signInAnonymously(
+        token ? { options: { captchaToken: token } } : undefined
+      );
 
       if (error) {
         sessionStorage.setItem(SESSION_ANONYMOUS_ATTEMPTED_KEY, 'true');
@@ -63,9 +63,9 @@ export function SessionInitializer() {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       setIsLoading(false);
       if (sessionError) {
-        // Potentially show Turnstile if we can't even get a session and want to try anon sign in
+        // Begin anonymous sign-in (via Turnstile if configured, else directly)
         if (!sessionStorage.getItem(SESSION_ANONYMOUS_ATTEMPTED_KEY)) {
-            setShowTurnstile(true);
+            beginAnonymousSignIn();
         } else {
           // Auth already attempted but failed
           dispatchAuthComplete(false, sessionError.message);
@@ -81,7 +81,7 @@ export function SessionInitializer() {
       } else {
         // No active session, check if we've already tried anonymous sign-in in this browser session
         if (!sessionStorage.getItem(SESSION_ANONYMOUS_ATTEMPTED_KEY)) {
-          setShowTurnstile(true); // Show Turnstile to get a token
+          beginAnonymousSignIn(); // Turnstile widget if configured, else tokenless
         } else {
           // Auth already attempted but we have no user - consider it failed
           dispatchAuthComplete(false, 'Anonymous sign-in was attempted but no session exists');
@@ -89,12 +89,16 @@ export function SessionInitializer() {
       }
     };
 
-    if (!turnstileSiteKey) {
-      setIsLoading(false);
-      // No auth possible, mark as failed
-      dispatchAuthComplete(false, 'Turnstile site key not configured');
-      return;
-    }
+    // When Turnstile is configured, show the widget to obtain a token; without
+    // a site key, sign in anonymously directly (Turnstile optional).
+    const beginAnonymousSignIn = () => {
+      if (turnstileSiteKey) {
+        setShowTurnstile(true);
+      } else {
+        attemptAnonymousSignIn();
+      }
+    };
+
     checkUserSession();
     
     // Listen to auth changes to update currentUser state
@@ -114,7 +118,7 @@ export function SessionInitializer() {
         authListener?.subscription?.unsubscribe();
     };
 
-  }, [supabase, turnstileSiteKey, dispatchAuthComplete]);
+  }, [supabase, turnstileSiteKey, dispatchAuthComplete, attemptAnonymousSignIn]);
 
   useEffect(() => {
     if (turnstileToken && showTurnstile) {
@@ -122,16 +126,13 @@ export function SessionInitializer() {
     }
   }, [turnstileToken, showTurnstile, attemptAnonymousSignIn]);
 
-  if (!turnstileSiteKey) {
-    // This case is handled in useEffect, but as a fallback for render:
-    return <div className="p-2 text-xs text-red-500 text-center">CAPTCHA configuration error.</div>;
-  }
-  
+  // No site key → no widget; anonymous sign-in happens tokenless in the effect.
+
   // Render Turnstile if needed. It could be styled to be less intrusive.
   // For a truly automatic anonymous sign-in, Turnstile's appearance might be 'invisible'
   // and programmatically invoked, but that's more complex to set up reliably without user interaction.
   // Using 'execute' on a hidden button or 'interaction-only' might be alternatives.
-  if (showTurnstile && !currentUser) {
+  if (showTurnstile && !currentUser && turnstileSiteKey) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
         <div className="bg-white p-4 rounded-lg shadow-xl border border-gray-200 max-w-sm mx-4">

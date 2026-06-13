@@ -66,13 +66,9 @@ export function SessionInitializerWithContext({ children }: { children: React.Re
       }
     }
 
-    if (!turnstileSiteKey) {
-      setIsLoading(false)
-      setIsAuthPending(false)
-      setIsAuthSuccessful(false)
-      setAuthError('Turnstile site key not configured')
-      return;
-    }
+    // Turnstile is optional: when no site key is configured, the inner
+    // SessionInitializer performs a tokenless anonymous sign-in. We still run
+    // checkUserSession here so this context resolves once that session exists.
 
     checkUserSession()
     

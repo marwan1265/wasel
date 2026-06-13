@@ -1,6 +1,6 @@
-import { checkRateLimit } from '@/lib/rate-limiter'
+import { checkRateLimitAtomic as checkRateLimit } from '@/lib/rate-limiter-atomic'
 import { checkRequestDuplicate, generateRequestFingerprint } from '@/lib/rate-limiter-dedup'
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const config = {
@@ -46,7 +46,7 @@ function createSupabaseClient(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
@@ -70,6 +70,13 @@ export async function middleware(request: NextRequest) {
 
   // Skip rate limiting for health checks
   if (pathname === '/api/health') {
+    return NextResponse.next()
+  }
+
+  // Check for internal service-to-service bypass key
+  const internalKey = request.headers.get('x-internal-key')
+  const bypassKey = process.env.INTERNAL_BYPASS_KEY
+  if (internalKey && bypassKey && internalKey === bypassKey && pathname.startsWith('/api/')) {
     return NextResponse.next()
   }
 
@@ -104,9 +111,12 @@ export async function middleware(request: NextRequest) {
         {
           method: request.method,
           path: pathname,
-          // For chat messages, include a portion of the body for deduplication
-          body: action === 'chat_message' && request.method === 'POST' 
-            ? await request.clone().text().then(text => text.substring(0, 100))
+          // Hash the full body: the first 100 chars of a chat payload are the
+          // chat id + start of the messages array, which is identical across
+          // *different* messages in the same chat and misclassified them all
+          // as duplicates.
+          body: action === 'chat_message' && request.method === 'POST'
+            ? await request.clone().text()
             : undefined
         },
         {
@@ -115,13 +125,13 @@ export async function middleware(request: NextRequest) {
         }
       )
 
-      // Check if this is a duplicate request
+      // Check if this is a duplicate request (used for observability only).
+      // Duplicates MUST still be rate limited: skipping the limiter here let
+      // anyone replay an identical request for unlimited un-counted LLM calls.
       const isDuplicate = await checkRequestDuplicate(fingerprint)
-      
+
       if (isDuplicate) {
-        console.log(`Duplicate request detected for ${userId}:${action}, skipping rate limit`)
-        // Allow duplicate requests through without counting against rate limit
-        return response
+        console.log(`Duplicate request detected for ${userId}:${action}`)
       }
 
       // Check rate limit

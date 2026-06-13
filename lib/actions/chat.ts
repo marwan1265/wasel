@@ -107,14 +107,16 @@ export async function getChatsPage(
     console.log('[getChatsPage] Attempting to fetch', conversationIds.length, 'chats from Redis cache.');
     const redisPipeline = redis.pipeline();
     conversationIds.forEach(id => redisPipeline.hgetall(`chat:${id}`));
-    const cachedChatsData = await redisPipeline.exec() as ([Error | null, Record<string, string> | null][]);
+    // Upstash pipeline.exec() returns the command results directly (not
+    // ioredis-style [error, data] tuples) — indexing [1] here previously made
+    // every lookup a cache miss.
+    const cachedChatsData = await redisPipeline.exec() as (Record<string, string> | null)[];
 
     for (let i = 0; i < conversationsMeta.length; i++) {
       const meta = conversationsMeta[i];
       const cacheResult = cachedChatsData[i];
-      // cacheResult is an array: [error, data]
-      if (cacheResult && cacheResult[1] && Object.keys(cacheResult[1]).length > 0) {
-        const chatFromCacheData = cacheResult[1];
+      if (cacheResult && Object.keys(cacheResult).length > 0) {
+        const chatFromCacheData = cacheResult;
         console.log('[getChatsPage] Cache hit for chat ID:', meta.id);
         const chat: Partial<Chat> = {};
         Object.keys(chatFromCacheData).forEach(key => {
@@ -241,6 +243,12 @@ export async function getChat(id: string, userId: string) {
     return null;
   }
 
+  // Security: Reject the fallback 'anonymous' identifier to prevent shared namespace access
+  if (!userId || userId === 'anonymous') {
+    console.warn('[getChat] Security: Rejected access for unresolved anonymous userId. ChatId:', id);
+    return null;
+  }
+
   const redis = await getRedis() // Keep Redis for cache access
   const cacheKey = `chat:${id}`;
   console.log('[getChat] Attempting to fetch from cache with key:', cacheKey);
@@ -249,6 +257,11 @@ export async function getChat(id: string, userId: string) {
 
 
   if (chatFromCache && Object.keys(chatFromCache).length > 0) {
+    // Security: Validate ownership on cache hit to prevent IDOR
+    if (chatFromCache.userId && chatFromCache.userId !== userId) {
+      console.warn(`[getChat] Security Violation: User ${userId} attempted to access cached chat belonging to ${chatFromCache.userId}. ChatId: ${id}`);
+      return null;
+    }
     console.log('[getChat] Cache hit for id:', id);
     // Cache hit
     if (typeof chatFromCache.messages === 'string') {
@@ -289,7 +302,7 @@ export async function getChat(id: string, userId: string) {
     console.log('[getChat] Supabase: Conversation not found for id:', id);
     return null // Not found in Supabase
   }
-  console.log('[getChat] Supabase: Fetched conversation for id:', id, conversation);
+  console.log('[getChat] Supabase: Fetched conversation for id:', id);
 
   console.log('[getChat] Supabase: Fetching messages for conversation_id:', id);
   const { data: messagesData, error: msgError } = await supabase
@@ -335,7 +348,7 @@ export async function getChat(id: string, userId: string) {
     messages: messages,
     sharePath: conversation.share_path || null
   }
-  console.log('[getChat] Constructed chatFromDb for id:', id, chatFromDb);
+  console.log('[getChat] Constructed chatFromDb for id:', id);
 
   // Populate Upstash cache
   const chatToCache = {
@@ -343,7 +356,7 @@ export async function getChat(id: string, userId: string) {
     messages: JSON.stringify(chatFromDb.messages) // Stringify messages for Redis
   }
   const cacheStoreKey = `chat:${chatFromDb.id}`;
-  console.log('[getChat] Attempting to populate cache for key:', cacheStoreKey, 'with data:', chatToCache);
+  console.log('[getChat] Attempting to populate cache for key:', cacheStoreKey);
   try {
     await redis.hmset(cacheStoreKey, chatToCache);
     console.log('[getChat] Successfully populated cache for key:', cacheStoreKey);
@@ -437,11 +450,13 @@ export async function deleteChat(
 
     // 1. Delete from Supabase
     // Option A: Explicitly delete messages first (safer if cascade is not guaranteed or for clarity)
+    // Security: scope by user_id too — without it any caller could delete the
+    // messages of any conversation just by knowing/guessing its ID.
     const { error: msgDelError } = await supabase
       .from('messages')
       .delete()
       .eq('conversation_id', chatId)
-      // .eq('user_id', userId) // If RLS on messages table is not solely based on conversation_id linkage
+      .eq('user_id', userId)
 
     if (msgDelError) {
       console.error(`Error deleting messages for chat ${chatId} from Supabase:`, msgDelError)
@@ -468,6 +483,11 @@ export async function deleteChat(
     const chatDetails = await redis.hgetall<Chat>(chatKey)
     if (!chatDetails || Object.keys(chatDetails).length === 0) {
       console.warn(`[deleteChat] Chat details not found in Redis cache (hgetall check) for chatKey: ${chatKey}. UserKey: ${userKey}. Will still attempt deletion from sorted set and Supabase.`)
+    } else if (chatDetails.userId && chatDetails.userId !== userId) {
+      // Security: never delete another user's cached chat — for guests the
+      // Redis entry is the only copy of the conversation.
+      console.warn(`[deleteChat] Security: User ${userId} attempted to delete chat ${chatId} owned by ${chatDetails.userId}. Rejected.`)
+      return { error: 'Chat not found' }
     } else {
       console.log(`[deleteChat] Chat details found in Redis cache for chatKey: ${chatKey}. Proceeding with full deletion.`);
     }
@@ -529,12 +549,69 @@ export async function saveUserMessage(
 }
 
 export async function saveChat(chat: Chat, userId: string) {
+  // Security: Reject saves for unresolved anonymous identifier
+  if (!userId || userId === 'anonymous') {
+    console.warn('[saveChat] Security: Rejected save for unresolved anonymous userId. ChatId:', chat.id);
+    return;
+  }
+
   try {
     const userTier = await getUserTier(userId)
+    const redis = await getRedis()
+
+    // Security: chat.id is client-supplied. Never overwrite a chat (cache or DB)
+    // that belongs to another user, otherwise any caller could hijack/corrupt
+    // arbitrary conversations by guessing their IDs.
+    const existingCached = await redis.hgetall<Chat>(`chat:${chat.id}`)
+    if (
+      existingCached &&
+      Object.keys(existingCached).length > 0 &&
+      existingCached.userId &&
+      existingCached.userId !== userId
+    ) {
+      console.warn(
+        `[saveChat] Security: User ${userId} attempted to overwrite chat ${chat.id} owned by ${existingCached.userId}. Rejected.`
+      )
+      throw new Error('Unauthorized: chat belongs to another user')
+    }
+
+    // Preserve the original creation time on re-saves (early save passes
+    // createdAt = now on every message, which would otherwise reset ordering).
+    let preservedCreatedAt: string | null = null
+    if (existingCached?.createdAt) {
+      const parsed = new Date(existingCached.createdAt as unknown as string)
+      if (!isNaN(parsed.getTime())) {
+        preservedCreatedAt = parsed.toISOString()
+      }
+    }
 
     if (userTier === 'free' || userTier === 'pro') {
       // Only persist to Supabase for 'free' or 'pro' users
       const supabase = await createSupabaseClient()
+
+      // Ownership check against the persisted row as well (the cache entry
+      // may have been evicted while the DB row still exists).
+      const { data: existingConv, error: existingConvError } = await supabase
+        .from('conversations')
+        .select('user_id, created_at')
+        .eq('id', chat.id)
+        .maybeSingle()
+
+      if (existingConvError) {
+        console.error('Supabase error checking conversation ownership:', existingConvError)
+        throw existingConvError
+      }
+
+      if (existingConv && existingConv.user_id !== userId) {
+        console.warn(
+          `[saveChat] Security: User ${userId} attempted to overwrite conversation ${chat.id} owned by ${existingConv.user_id}. Rejected.`
+        )
+        throw new Error('Unauthorized: chat belongs to another user')
+      }
+
+      if (existingConv?.created_at) {
+        preservedCreatedAt = existingConv.created_at
+      }
 
       // 1. Save to Supabase
       // Upsert conversation
@@ -545,7 +622,7 @@ export async function saveChat(chat: Chat, userId: string) {
           user_id: userId,
           title: chat.title,
           path: chat.path,
-          created_at: new Date(chat.createdAt).toISOString(),
+          created_at: preservedCreatedAt ?? new Date(chat.createdAt).toISOString(),
           updated_at: new Date().toISOString(),
           share_path: chat.sharePath
         })
@@ -610,11 +687,12 @@ export async function saveChat(chat: Chat, userId: string) {
     } // End of Supabase persistence block for non-guest users
 
     // For ALL users (guests, free, pro), save to Upstash for caching during the session
-    const redis = await getRedis()
     const pipeline = redis.pipeline()
 
     const chatToSave = {
       ...chat,
+      // Keep the original creation time so history ordering stays stable
+      createdAt: preservedCreatedAt ?? new Date(chat.createdAt).toISOString(),
       messages: JSON.stringify(chat.messages)
     }
 
@@ -639,11 +717,82 @@ export async function getSharedChat(id: string) {
   const redis = await getRedis()
   const chat = await redis.hgetall<Chat>(`chat:${id}`)
 
-  if (!chat || !chat.sharePath) {
-    return null
+  if (chat && chat.sharePath) {
+    // Messages are stored as a JSON string in Redis — the share page calls
+    // convertToUIMessages on them, which crashes on a raw string.
+    if (typeof chat.messages === 'string') {
+      try {
+        chat.messages = JSON.parse(chat.messages)
+      } catch (error) {
+        console.error('[getSharedChat] Error parsing messages from cache:', error)
+        chat.messages = []
+      }
+    }
+    if (!Array.isArray(chat.messages)) {
+      chat.messages = []
+    }
+    if (chat.createdAt && !(chat.createdAt instanceof Date)) {
+      chat.createdAt = new Date(chat.createdAt)
+    }
+    return chat
   }
 
-  return chat
+  // Cache miss or eviction: fall back to Supabase, where shared conversations
+  // are persisted (the Redis entry expires after 24h for guest chats).
+  try {
+    const supabase = await createSupabaseClient()
+    const { data: conversation, error: convError } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('id', id)
+      .not('share_path', 'is', null)
+      .maybeSingle()
+
+    if (convError || !conversation || !conversation.share_path) {
+      return null
+    }
+
+    const { data: messagesData, error: msgError } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', id)
+      .order('created_at', { ascending: true })
+
+    if (msgError) {
+      console.error('[getSharedChat] Error fetching messages from Supabase:', msgError)
+      return null
+    }
+
+    const messages: ExtendedCoreMessage[] = (messagesData || []).map(msg => {
+      let content: CoreMessage['content'] | JSONValue = msg.content
+      try {
+        if (typeof msg.content === 'string' && (msg.content.startsWith('{') || msg.content.startsWith('['))) {
+          content = JSON.parse(msg.content)
+        }
+      } catch (e) {
+        // Keep content as string if parsing fails
+      }
+      return {
+        role: msg.role as CoreMessage['role'] | 'data',
+        content: content
+      }
+    })
+
+    const sharedChat: Chat = {
+      id: conversation.id,
+      title: conversation.title,
+      createdAt: new Date(conversation.created_at),
+      userId: conversation.user_id,
+      path: conversation.path,
+      messages: messages,
+      sharePath: conversation.share_path
+    }
+
+    return sharedChat
+  } catch (error) {
+    console.error('[getSharedChat] Error in Supabase fallback:', error)
+    return null
+  }
 }
 
 export async function shareChat(id: string, userId: string): Promise<Chat | null> {

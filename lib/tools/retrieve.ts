@@ -8,12 +8,16 @@ async function fetchJinaReaderData(
   url: string
 ): Promise<SearchResultsType | null> {
   try {
+    const jinaHeaders: Record<string, string> = {
+      Accept: 'application/json',
+      'X-With-Generated-Alt': 'true'
+    }
+    if (process.env.JINA_API_KEY) {
+      jinaHeaders['Authorization'] = `Bearer ${process.env.JINA_API_KEY}`
+    }
     const response = await fetch(`https://r.jina.ai/${url}`, {
       method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'X-With-Generated-Alt': 'true'
-      }
+      headers: jinaHeaders
     })
     const json = await response.json()
     if (!json.data || json.data.length === 0) {

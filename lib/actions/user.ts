@@ -56,9 +56,8 @@ export async function deleteUserAccount() {
       console.error('Error deleting user profile:', profileError)
     }
 
-    // Note: We can't delete the auth user from the client side
-    // This would need to be done through a database function or admin API
-    // For now, we'll just delete the user data and sign them out
+    // Sign out the user session on the server to invalidate cookies
+    await supabase.auth.signOut()
     
     return { success: true }
   } catch (error) {

@@ -56,9 +56,13 @@ export function createSearchTool(fullModel: string) {
         ) {
           const baseUrl =
             process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+          const internalHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+          if (process.env.INTERNAL_BYPASS_KEY) {
+            internalHeaders['x-internal-key'] = process.env.INTERNAL_BYPASS_KEY
+          }
           const response = await fetch(`${baseUrl}/api/advanced-search`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: internalHeaders,
             body: JSON.stringify({
               query: filledQuery,
               maxResults: effectiveMaxResults,
@@ -103,7 +107,7 @@ export function createSearchTool(fullModel: string) {
 }
 
 // Default export for backward compatibility, using a default model
-export const searchTool = createSearchTool('openai:gpt-4o-mini')
+export const searchTool = createSearchTool('deepseek:deepseek-chat')
 
 export async function search(
   query: string,
@@ -164,8 +168,11 @@ async function tavilySearch(
   }
 
   const data = await response.json()
+  // Tavily omits `images` for some queries — without the fallback the whole
+  // search result (not just images) was discarded by the caller's catch.
+  const images = data.images || []
   const processedImages = includeImageDescriptions
-    ? data.images
+    ? images
         .map(({ url, description }: { url: string; description: string }) => ({
           url: sanitizeUrl(url),
           description
@@ -178,7 +185,7 @@ async function tavilySearch(
             image.description !== undefined &&
             image.description !== ''
         )
-    : data.images.map((url: string) => sanitizeUrl(url))
+    : images.map((url: string) => sanitizeUrl(url))
 
   return {
     ...data,

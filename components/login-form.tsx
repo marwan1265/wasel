@@ -61,7 +61,8 @@ export function LoginForm({
     setIsLoading(true)
     setError(null)
 
-    if (!turnstileToken) {
+    // Turnstile only enforced when a site key is configured (production).
+    if (turnstileSiteKey && !turnstileToken) {
       setError('Please complete the CAPTCHA challenge.')
       setIsLoading(false)
       return
@@ -71,9 +72,7 @@ export function LoginForm({
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
-        options: {
-          captchaToken: turnstileToken
-        }
+        options: turnstileToken ? { captchaToken: turnstileToken } : undefined
       })
       if (error) throw error
       // Redirect to root and refresh to ensure server components get updated session
@@ -117,14 +116,7 @@ export function LoginForm({
     }
   }
 
-  if (!turnstileSiteKey) {
-    console.error('Turnstile site key is not configured.')
-    return (
-      <div className="text-red-500 text-center p-4">
-        CAPTCHA configuration is missing. Please contact support.
-      </div>
-    )
-  }
+  // No site key configured → Turnstile disabled (optional); form still works.
 
   return (
     <div
@@ -229,28 +221,30 @@ export function LoginForm({
                 </div>
               </div>
 
-              <div className="my-2 flex justify-center">
-                <Turnstile
-                  ref={turnstileRef}
-                  siteKey={turnstileSiteKey}
-                  onSuccess={setTurnstileToken}
-                  onError={() => {
-                    setError('CAPTCHA verification failed. Please try again.')
-                    setTurnstileToken(null)
-                  }}
-                  onExpire={() => {
-                    setError('CAPTCHA expired. Please complete it again.')
-                    setTurnstileToken(null)
-                  }}
-                  options={{
-                    theme: 'light',
-                    appearance: 'always'
-                  }}
-                />
-              </div>
+              {turnstileSiteKey && (
+                <div className="my-2 flex justify-center">
+                  <Turnstile
+                    ref={turnstileRef}
+                    siteKey={turnstileSiteKey}
+                    onSuccess={setTurnstileToken}
+                    onError={() => {
+                      setError('CAPTCHA verification failed. Please try again.')
+                      setTurnstileToken(null)
+                    }}
+                    onExpire={() => {
+                      setError('CAPTCHA expired. Please complete it again.')
+                      setTurnstileToken(null)
+                    }}
+                    options={{
+                      theme: 'light',
+                      appearance: 'always'
+                    }}
+                  />
+                </div>
+              )}
 
               {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken}>
+              <Button type="submit" className="w-full" disabled={isLoading || (!!turnstileSiteKey && !turnstileToken)}>
                 {isLoading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
               </Button>
             </form>

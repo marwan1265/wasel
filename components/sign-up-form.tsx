@@ -76,7 +76,9 @@ export function SignUpForm({
       return
     }
 
-    if (!turnstileToken) {
+    // Turnstile is only enforced when a site key is configured (production).
+    // Without it (e.g. local/self-host), sign-up proceeds without a captcha.
+    if (turnstileSiteKey && !turnstileToken) {
       setError('يرجى إكمال تحدي التحقق من الهوية.')
       setIsLoading(false)
       return
@@ -86,9 +88,7 @@ export function SignUpForm({
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          captchaToken: turnstileToken
-        }
+        options: turnstileToken ? { captchaToken: turnstileToken } : undefined
       })
       if (error) throw error
       // Redirect to OTP verification page
@@ -133,14 +133,8 @@ export function SignUpForm({
     resetTurnstile()
   }
 
-  if (!turnstileSiteKey) {
-    console.error('Turnstile site key is not configured.')
-    return (
-      <div className="text-red-500 text-center p-4">
-        إعدادات التحقق من الهوية مفقودة. يرجى التواصل مع الدعم الفني.
-      </div>
-    )
-  }
+  // No site key configured → Turnstile is disabled (optional). The form still
+  // renders and works; the widget and token requirement are skipped below.
 
   const renderEmailStep = () => (
     <Card className="w-full max-w-sm">
@@ -274,27 +268,29 @@ export function SignUpForm({
               disabled={isLoading}
             />
           </div>
-          <div className="my-4 flex justify-center">
-            <Turnstile
-              ref={turnstileRef}
-              siteKey={turnstileSiteKey}
-              onSuccess={setTurnstileToken}
-              onError={() => {
-                setError('فشل التحقق من الهوية. يرجى المحاولة مرة أخرى.')
-                setTurnstileToken(null)
-              }}
-              onExpire={() => {
-                setError('انتهت صلاحية التحقق من الهوية. يرجى إكماله مرة أخرى.')
-                setTurnstileToken(null)
-              }}
-              options={{
-                theme: 'light',
-                appearance: 'always'
-              }}
-            />
-          </div>
+          {turnstileSiteKey && (
+            <div className="my-4 flex justify-center">
+              <Turnstile
+                ref={turnstileRef}
+                siteKey={turnstileSiteKey}
+                onSuccess={setTurnstileToken}
+                onError={() => {
+                  setError('فشل التحقق من الهوية. يرجى المحاولة مرة أخرى.')
+                  setTurnstileToken(null)
+                }}
+                onExpire={() => {
+                  setError('انتهت صلاحية التحقق من الهوية. يرجى إكماله مرة أخرى.')
+                  setTurnstileToken(null)
+                }}
+                options={{
+                  theme: 'light',
+                  appearance: 'always'
+                }}
+              />
+            </div>
+          )}
           {error && <p className="text-sm text-red-500">{error}</p>}
-          <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken}>
+          <Button type="submit" className="w-full" disabled={isLoading || (!!turnstileSiteKey && !turnstileToken)}>
             {isLoading ? 'جاري إنشاء الحساب...' : 'إنشاء حساب'}
           </Button>
           <Button

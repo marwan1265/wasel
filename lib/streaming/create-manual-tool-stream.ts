@@ -74,7 +74,8 @@ export function createManualToolStreamResponse(config: BaseStreamConfig) {
               dataStream,
               userId,
               skipRelatedQuestions: true,
-              annotations
+              annotations,
+              skipSaveHistory: config.skipSaveHistory
             })
           },
           onChunk(event) {
@@ -116,7 +117,8 @@ export function createManualToolStreamResponse(config: BaseStreamConfig) {
           error: error instanceof Error ? error : new Error(String(error)),
           chatId,
           userId,
-          context: 'Manual stream execution error'
+          context: 'Manual stream execution error',
+          skipSaveHistory: config.skipSaveHistory
         })
         
         throw error
@@ -131,7 +133,8 @@ export function createManualToolStreamResponse(config: BaseStreamConfig) {
         error: error instanceof Error ? error : new Error(String(error)),
         chatId: config.chatId,
         userId: config.userId,
-        context: 'Manual stream onError callback'
+        context: 'Manual stream onError callback',
+        skipSaveHistory: config.skipSaveHistory
       }).catch(saveError => {
         console.error('Failed to save partial response on stream error:', saveError)
       })

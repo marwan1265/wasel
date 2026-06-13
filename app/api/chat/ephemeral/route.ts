@@ -43,66 +43,56 @@ export async function POST(req: Request) {
 
     console.log('[Ephemeral API] Authenticated user:', userId)
 
-    // Temporarily disable chat history saving for this request
-    const originalSaveHistory = process.env.ENABLE_SAVE_CHAT_HISTORY
-    process.env.ENABLE_SAVE_CHAT_HISTORY = 'false'
+    const cookieStore = await cookies()
+    const modelJson = cookieStore.get('selectedModel')?.value
+    const searchMode = cookieStore.get('search-mode')?.value === 'true'
 
-    try {
-      const cookieStore = await cookies()
-      const modelJson = cookieStore.get('selectedModel')?.value
-      const searchMode = cookieStore.get('search-mode')?.value === 'true'
+    let selectedModel = DEFAULT_MODEL
 
-      let selectedModel = DEFAULT_MODEL
-
-      if (modelJson) {
-        try {
-          selectedModel = JSON.parse(modelJson) as Model
-        } catch (e) {
-          console.error('Failed to parse selected model:', e)
-        }
-      }
-
-      if (
-        !isProviderEnabled(selectedModel.providerId) ||
-        selectedModel.enabled === false
-      ) {
-        return new Response(
-          `Selected provider is not enabled ${selectedModel.providerId}`,
-          {
-            status: 404,
-            statusText: 'Not Found'
-          }
-        )
-      }
-
-      console.log(`[Ephemeral API] Using model: ${selectedModel.name} (${selectedModel.providerId})`)
-
-      const supportsToolCalling = selectedModel.toolCallType === 'native'
-
-      // Use the same streaming logic as main chat API
-      // Rate limiting and authentication are handled by middleware
-      // The saving is prevented by temporarily disabling ENABLE_SAVE_CHAT_HISTORY
-      return supportsToolCalling
-        ? createToolCallingStreamResponse({
-            messages,
-            model: selectedModel,
-            chatId,
-            searchMode,
-            userId // Use the actual authenticated user ID (could be 'anonymous' for guests)
-          })
-        : createManualToolStreamResponse({
-            messages,
-            model: selectedModel,
-            chatId,
-            searchMode,
-            userId // Use the actual authenticated user ID (could be 'anonymous' for guests)
-          })
-    } finally {
-      // Restore original environment variable
-      if (originalSaveHistory !== undefined) {
-        process.env.ENABLE_SAVE_CHAT_HISTORY = originalSaveHistory
+    if (modelJson) {
+      try {
+        selectedModel = JSON.parse(modelJson) as Model
+      } catch (e) {
+        console.error('Failed to parse selected model:', e)
       }
     }
+
+    if (
+      !isProviderEnabled(selectedModel.providerId) ||
+      selectedModel.enabled === false
+    ) {
+      return new Response(
+        `Selected provider is not enabled ${selectedModel.providerId}`,
+        {
+          status: 404,
+          statusText: 'Not Found'
+        }
+      )
+    }
+
+    console.log(`[Ephemeral API] Using model: ${selectedModel.name} (${selectedModel.providerId})`)
+
+    const supportsToolCalling = selectedModel.toolCallType === 'native'
+
+    // Use the same streaming logic as main chat API
+    // Rate limiting and authentication are handled by middleware
+    return supportsToolCalling
+      ? createToolCallingStreamResponse({
+          messages,
+          model: selectedModel,
+          chatId,
+          searchMode,
+          userId,
+          skipSaveHistory: true
+        })
+      : createManualToolStreamResponse({
+          messages,
+          model: selectedModel,
+          chatId,
+          searchMode,
+          userId,
+          skipSaveHistory: true
+        })
   } catch (error) {
     console.error('[Ephemeral API] Error in ephemeral chat:', error)
     return new Response('An error occurred while processing your request.', {
