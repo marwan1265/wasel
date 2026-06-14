@@ -93,7 +93,7 @@
       "name": "Gemini 2.0 Flash",
       "provider": "Google Generative AI",
       "providerId": "google",
-      "enabled": false,
+      "enabled": true,
       "toolCallType": "manual",
       "vision": true
     },
