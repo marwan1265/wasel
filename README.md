@@ -111,8 +111,13 @@ by a single variable:
 
 Wasel is provider-agnostic. The following LLM providers are supported:
 
-> OpenAI · Anthropic · Google · Groq · DeepSeek · xAI (Grok) · Fireworks ·
-> Azure OpenAI · Ollama · any OpenAI-compatible endpoint
+> OpenAI · Anthropic · Google · Groq · DeepSeek · Zhipu (GLM) · xAI (Grok) ·
+> Fireworks · Azure OpenAI · Ollama · any OpenAI-compatible endpoint
+
+Image attachments (vision) are supported on vision-capable models — set a
+model's `"vision": true` in the config. **GLM-4.6V** (Zhipu) is enabled by
+default for this: **GLM-4.6V-Flash** is free and **GLM-4.6V** is a cheap,
+higher-quality tier. Both need `ZHIPU_API_KEY` (see `.env.local.example`).
 
 Models are defined in [`public/config/models.json`](public/config/models.json) —
 enable the ones you have API keys for and select them from the UI. Each model

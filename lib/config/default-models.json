@@ -93,7 +93,7 @@
       "name": "Gemini 2.0 Flash",
       "provider": "Google Generative AI",
       "providerId": "google",
-      "enabled": true,
+      "enabled": false,
       "toolCallType": "manual",
       "vision": true
     },
@@ -221,6 +221,24 @@
       "providerId": "openai-compatible",
       "enabled": false,
       "toolCallType": "native"
+    },
+    {
+      "id": "glm-4.6v-flash",
+      "name": "GLM-4.6V Flash (مجاني)",
+      "provider": "Zhipu",
+      "providerId": "zhipu",
+      "enabled": true,
+      "toolCallType": "native",
+      "vision": true
+    },
+    {
+      "id": "glm-4.6v",
+      "name": "GLM-4.6V",
+      "provider": "Zhipu",
+      "providerId": "zhipu",
+      "enabled": false,
+      "toolCallType": "native",
+      "vision": true
     }
   ]
 }

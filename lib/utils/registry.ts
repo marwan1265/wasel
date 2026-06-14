@@ -37,6 +37,14 @@ export const registry = createProviderRegistry({
     apiKey: process.env.OPENAI_COMPATIBLE_API_KEY,
     baseURL: process.env.OPENAI_COMPATIBLE_API_BASE_URL
   }),
+  // Zhipu GLM (OpenAI-compatible). GLM-4.6V / GLM-4.6V-Flash are vision models.
+  // Default endpoint is the mainland BigModel host; override with
+  // ZHIPU_API_BASE_URL (e.g. https://api.z.ai/api/paas/v4 for the intl host).
+  zhipu: createOpenAI({
+    apiKey: process.env.ZHIPU_API_KEY,
+    baseURL:
+      process.env.ZHIPU_API_BASE_URL || 'https://open.bigmodel.cn/api/paas/v4'
+  }),
   xai
 })
 
@@ -119,6 +127,8 @@ export function isProviderEnabled(providerId: string): boolean {
       return !!process.env.FIREWORKS_API_KEY
     case 'xai':
       return !!process.env.XAI_API_KEY
+    case 'zhipu':
+      return !!process.env.ZHIPU_API_KEY
     case 'openai-compatible':
       return (
         !!process.env.OPENAI_COMPATIBLE_API_KEY &&
