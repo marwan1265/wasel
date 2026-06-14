@@ -11,7 +11,8 @@ export function validateModel(model: any): model is Model {
     typeof model.enabled === 'boolean' &&
     (model.toolCallType === 'native' || model.toolCallType === 'manual') &&
     (model.toolCallModel === undefined ||
-      typeof model.toolCallModel === 'string')
+      typeof model.toolCallModel === 'string') &&
+    (model.vision === undefined || typeof model.vision === 'boolean')
   )
 }
 

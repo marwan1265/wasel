@@ -7,15 +7,23 @@ import TextareaAutosize from 'react-textarea-autosize'
 import { CollapsibleMessage } from './collapsible-message'
 import { Button } from './ui/button'
 
+type MessageAttachment = {
+  url: string
+  name?: string
+  contentType?: string
+}
+
 type UserMessageProps = {
   message: string
   messageId?: string
+  attachments?: MessageAttachment[]
   onUpdateMessage?: (messageId: string, newContent: string) => Promise<void>
 }
 
 export const UserMessage: React.FC<UserMessageProps> = ({
   message,
   messageId,
+  attachments,
   onUpdateMessage
 }) => {
   const [isEditing, setIsEditing] = useState(false)
@@ -70,6 +78,26 @@ export const UserMessage: React.FC<UserMessageProps> = ({
           </div>
         ) : (
           <div className="flex flex-col relative">
+            {attachments && attachments.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3" dir="rtl">
+                {attachments
+                  .filter(
+                    attachment =>
+                      !attachment.contentType ||
+                      attachment.contentType.startsWith('image/') ||
+                      attachment.url.startsWith('data:image/')
+                  )
+                  .map((attachment, index) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={`${attachment.name ?? 'image'}-${index}`}
+                      src={attachment.url}
+                      alt={attachment.name ?? 'مرفق'}
+                      className="max-h-60 rounded-lg object-contain border border-input"
+                    />
+                  ))}
+              </div>
+            )}
             <div className="flex-1 mb-8">{message}</div>
             <div
               className={cn(

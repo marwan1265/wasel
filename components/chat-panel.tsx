@@ -2,12 +2,21 @@
 
 import { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
-import { Message } from 'ai'
-import { ArrowUp, ChevronDown, Square } from 'lucide-react'
+import {
+  ACCEPTED_IMAGE_TYPES_ATTR,
+  isAcceptedImageType,
+  MAX_ATTACHMENTS,
+  MAX_ATTACHMENT_SIZE_BYTES,
+  modelSupportsVision
+} from '@/lib/utils/attachments'
+import { getCookie } from '@/lib/utils/cookies'
+import { Attachment, ChatRequestOptions, Message } from 'ai'
+import { ArrowUp, ChevronDown, ImageIcon, Square, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import Textarea from 'react-textarea-autosize'
+import { toast } from 'sonner'
 import { useArtifact } from './artifact/artifact-context'
 import { DeepthinkToggle } from './deepthink-toggle'
 import { EmptyScreen } from './empty-screen'
@@ -19,7 +28,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 interface ChatPanelProps {
   input: string
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
-  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void
+  handleSubmit: (
+    e: React.FormEvent<HTMLFormElement>,
+    options?: ChatRequestOptions
+  ) => void
   isLoading: boolean
   messages: Message[]
   setMessages: (messages: Message[]) => void
@@ -29,6 +41,36 @@ interface ChatPanelProps {
   models?: Model[]
   /** Whether auto-scroll is currently active (at bottom) */
   isAutoScroll: boolean
+}
+
+// Read the currently selected model from the cookie set by ModelSelector.
+function readSelectedModel(): Model | null {
+  const raw = getCookie('selectedModel')
+  if (!raw) return null
+  try {
+    return JSON.parse(decodeURIComponent(raw)) as Model
+  } catch {
+    try {
+      return JSON.parse(raw) as Model
+    } catch {
+      return null
+    }
+  }
+}
+
+// Read a File into a data URL attachment usable by the AI SDK.
+function fileToAttachment(file: File): Promise<Attachment> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () =>
+      resolve({
+        name: file.name,
+        contentType: file.type,
+        url: reader.result as string
+      })
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
 }
 
 export function ChatPanel({
@@ -47,11 +89,93 @@ export function ChatPanel({
   const [showEmptyScreen, setShowEmptyScreen] = useState(false)
   const router = useRouter()
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const isFirstRender = useRef(true)
   const [isComposing, setIsComposing] = useState(false) // Composition state
   const [enterDisabled, setEnterDisabled] = useState(false) // Disable Enter after composition ends
   const { close: closeArtifact } = useArtifact()
   const [isMobile, setIsMobile] = useState(false)
+
+  // Image attachments (multimodal). Kept as AI SDK Attachments (data URLs) so
+  // they can be passed straight to handleSubmit via experimental_attachments.
+  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [selectedModel, setSelectedModel] = useState<Model | null>(null)
+  const visionSupported = modelSupportsVision(selectedModel)
+
+  // Track the active model so the attach control reflects its vision support.
+  useEffect(() => {
+    setSelectedModel(readSelectedModel())
+    const onModelChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail as Model | null | undefined
+      setSelectedModel(detail ?? readSelectedModel())
+    }
+    window.addEventListener('selectedModel-change', onModelChange)
+    return () =>
+      window.removeEventListener('selectedModel-change', onModelChange)
+  }, [])
+
+  // If the user switches to a model without vision while images are attached,
+  // clear them so we never submit attachments a model can't read.
+  useEffect(() => {
+    if (!visionSupported && attachments.length > 0) {
+      setAttachments([])
+      toast.info('تمت إزالة الصور لأن النموذج المحدد لا يدعم الصور.')
+    }
+  }, [visionSupported, attachments.length])
+
+  const clearAttachments = () => setAttachments([])
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleFilesSelected = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const fileList = e.target.files
+    if (!fileList || fileList.length === 0) return
+
+    const incoming = Array.from(fileList)
+    // Reset the input so selecting the same file again re-triggers onChange.
+    e.target.value = ''
+
+    const accepted: File[] = []
+    for (const file of incoming) {
+      if (!isAcceptedImageType(file.type)) {
+        toast.error(`نوع الملف غير مدعوم: ${file.name}`)
+        continue
+      }
+      if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
+        toast.error(
+          `الملف كبير جدًا (الحد الأقصى ${Math.round(
+            MAX_ATTACHMENT_SIZE_BYTES / (1024 * 1024)
+          )} ميجابايت): ${file.name}`
+        )
+        continue
+      }
+      accepted.push(file)
+    }
+
+    if (accepted.length === 0) return
+
+    const remainingSlots = MAX_ATTACHMENTS - attachments.length
+    if (remainingSlots <= 0) {
+      toast.error(`يمكنك إرفاق ${MAX_ATTACHMENTS} صور كحد أقصى.`)
+      return
+    }
+    const toAdd = accepted.slice(0, remainingSlots)
+    if (accepted.length > remainingSlots) {
+      toast.error(`يمكنك إرفاق ${MAX_ATTACHMENTS} صور كحد أقصى.`)
+    }
+
+    try {
+      const newAttachments = await Promise.all(toAdd.map(fileToAttachment))
+      setAttachments(prev => [...prev, ...newAttachments])
+    } catch (error) {
+      console.error('Failed to read attachment:', error)
+      toast.error('تعذر قراءة الملف المرفق.')
+    }
+  }
 
   // Check if we're on mobile
   useEffect(() => {
@@ -131,6 +255,25 @@ export function ChatPanel({
     </Button>
   )
 
+  // Submit the form, forwarding any image attachments to the model and then
+  // clearing them. Used by both the send button and the Enter key.
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    if (isLoading || isToolInvocationInProgress()) {
+      e.preventDefault()
+      return
+    }
+    if (input.trim().length === 0 && attachments.length === 0) {
+      e.preventDefault()
+      return
+    }
+    const options: ChatRequestOptions | undefined =
+      attachments.length > 0
+        ? { experimental_attachments: attachments }
+        : undefined
+    handleSubmit(e, options)
+    clearAttachments()
+  }
+
   const submitButton = (
     <Button
       type={isLoading ? 'button' : 'submit'}
@@ -138,12 +281,26 @@ export function ChatPanel({
       variant={'outline'}
       className={cn(isLoading && 'animate-pulse', 'rounded-full hover:border-foreground')}
       disabled={
-        (input.length === 0 && !isLoading) ||
+        (input.length === 0 && attachments.length === 0 && !isLoading) ||
         isToolInvocationInProgress()
       }
       onClick={isLoading ? stop : undefined}
     >
       {isLoading ? <Square size={20} /> : <ArrowUp size={20} />}
+    </Button>
+  )
+
+  const attachButton = (
+    <Button
+      type="button"
+      size={'icon'}
+      variant={'outline'}
+      className="rounded-full hover:border-foreground"
+      disabled={!visionSupported || isLoading}
+      aria-label="إرفاق صورة"
+      onClick={() => fileInputRef.current?.click()}
+    >
+      <ImageIcon size={18} />
     </Button>
   )
 
@@ -164,15 +321,18 @@ export function ChatPanel({
         </div>
       )}
       <form
-        onSubmit={(e) => {
-          if (isLoading || isToolInvocationInProgress()) {
-            e.preventDefault()
-            return
-          }
-          handleSubmit(e)
-        }}
+        onSubmit={handleFormSubmit}
         className={cn('max-w-3xl w-full mx-auto relative overflow-visible')}
       >
+        {/* Hidden file input for image attachments */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={ACCEPTED_IMAGE_TYPES_ATTR}
+          multiple
+          className="hidden"
+          onChange={handleFilesSelected}
+        />
         {/* Add scroll-down button to ChatPanel right top - show when not auto scrolling */}
         {!isAutoScroll && messages.length > 0 && (
           <>
@@ -192,6 +352,33 @@ export function ChatPanel({
         )}
 
         <div className="relative flex flex-col w-full gap-2 bg-muted rounded-3xl border border-input">
+          {/* Attachment previews */}
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 px-4 pt-3" dir="rtl">
+              {attachments.map((attachment, index) => (
+                <div
+                  key={`${attachment.name ?? 'image'}-${index}`}
+                  className="relative group/attachment"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={attachment.url}
+                    alt={attachment.name ?? 'مرفق'}
+                    className="size-16 rounded-lg object-cover border border-input"
+                  />
+                  <button
+                    type="button"
+                    aria-label="إزالة المرفق"
+                    onClick={() => removeAttachment(index)}
+                    className="absolute -top-1.5 -left-1.5 rounded-full bg-background border border-input p-0.5 shadow-sm opacity-0 group-hover/attachment:opacity-100 focus:opacity-100 transition-opacity"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <Textarea
             ref={inputRef}
             name="input"
@@ -215,7 +402,11 @@ export function ChatPanel({
                 !isComposing &&
                 !enterDisabled
               ) {
-                if (input.trim().length === 0 || isLoading || isToolInvocationInProgress()) {
+                if (
+                  (input.trim().length === 0 && attachments.length === 0) ||
+                  isLoading ||
+                  isToolInvocationInProgress()
+                ) {
                   e.preventDefault()
                   return
                 }
@@ -233,6 +424,22 @@ export function ChatPanel({
             <div className="flex items-center gap-2">
               <DeepthinkToggle />
               <SearchModeToggle />
+              {!isMobile ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>{attachButton}</span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {visionSupported
+                        ? 'إرفاق صورة'
+                        : 'النموذج الحالي لا يدعم الصور'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                attachButton
+              )}
             </div>
             <div className="flex items-center gap-2">
               {!isMobile ? (

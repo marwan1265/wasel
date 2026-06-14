@@ -102,6 +102,7 @@ export function RenderMessage({
       <UserMessage
         message={message.content}
         messageId={messageId}
+        attachments={message.experimental_attachments}
         onUpdateMessage={onUpdateMessage}
       />
     )

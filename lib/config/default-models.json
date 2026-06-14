@@ -6,7 +6,8 @@
       "provider": "OpenAI",
       "providerId": "openai",
       "enabled": false,
-      "toolCallType": "native"
+      "toolCallType": "native",
+      "vision": true
     },
     {
       "id": "gpt-4.1-mini",
@@ -14,7 +15,8 @@
       "provider": "OpenAI",
       "providerId": "openai",
       "enabled": false,
-      "toolCallType": "native"
+      "toolCallType": "native",
+      "vision": true
     },
     {
       "id": "gpt-4.1-nano",
@@ -22,7 +24,8 @@
       "provider": "OpenAI",
       "providerId": "openai",
       "enabled": false,
-      "toolCallType": "native"
+      "toolCallType": "native",
+      "vision": true
     },
     {
       "id": "o3-mini",
@@ -38,7 +41,8 @@
       "provider": "OpenAI",
       "providerId": "openai",
       "enabled": false,
-      "toolCallType": "native"
+      "toolCallType": "native",
+      "vision": true
     },
     {
       "id": "gpt-4o-mini",
@@ -46,7 +50,8 @@
       "provider": "OpenAI",
       "providerId": "openai",
       "enabled": false,
-      "toolCallType": "native"
+      "toolCallType": "native",
+      "vision": true
     },
     {
       "id": "claude-3-7-sonnet-20250219",
@@ -54,7 +59,8 @@
       "provider": "Anthropic",
       "providerId": "anthropic",
       "enabled": false,
-      "toolCallType": "native"
+      "toolCallType": "native",
+      "vision": true
     },
     {
       "id": "claude-3-5-sonnet-latest",
@@ -62,7 +68,8 @@
       "provider": "Anthropic",
       "providerId": "anthropic",
       "enabled": false,
-      "toolCallType": "native"
+      "toolCallType": "native",
+      "vision": true
     },
     {
       "id": "claude-3-5-haiku-20241022",
@@ -70,7 +77,8 @@
       "provider": "Anthropic",
       "providerId": "anthropic",
       "enabled": false,
-      "toolCallType": "native"
+      "toolCallType": "native",
+      "vision": true
     },
     {
       "id": "<AZURE_DEPLOYMENT_NAME>",
@@ -86,7 +94,8 @@
       "provider": "Google Generative AI",
       "providerId": "google",
       "enabled": false,
-      "toolCallType": "manual"
+      "toolCallType": "manual",
+      "vision": true
     },
     {
       "id": "gemini-2.0-flash-thinking-exp-01-21",
@@ -95,7 +104,8 @@
       "providerId": "google",
       "enabled": false,
       "toolCallType": "manual",
-      "toolCallModel": "gemini-2.0-flash"
+      "toolCallModel": "gemini-2.0-flash",
+      "vision": true
     },
     {
       "id": "gemini-2.5-pro-exp-03-25",
@@ -104,7 +114,8 @@
       "providerId": "google",
       "enabled": false,
       "toolCallType": "manual",
-      "toolCallModel": "gemini-2.0-flash"
+      "toolCallModel": "gemini-2.0-flash",
+      "vision": true
     },
     {
       "id": "accounts/fireworks/models/deepseek-r1",
@@ -122,7 +133,8 @@
       "providerId": "fireworks",
       "enabled": false,
       "toolCallType": "manual",
-      "toolCallModel": "accounts/fireworks/models/llama-v3p1-8b-instruct"
+      "toolCallModel": "accounts/fireworks/models/llama-v3p1-8b-instruct",
+      "vision": true
     },
     {
       "id": "deepseek-reasoner",
@@ -156,7 +168,8 @@
       "provider": "Groq",
       "providerId": "groq",
       "enabled": false,
-      "toolCallType": "native"
+      "toolCallType": "native",
+      "vision": true
     },
     {
       "id": "deepseek-r1",
@@ -190,7 +203,8 @@
       "provider": "xAI",
       "providerId": "xai",
       "enabled": false,
-      "toolCallType": "native"
+      "toolCallType": "native",
+      "vision": true
     },
     {
       "id": "grok-3-beta",

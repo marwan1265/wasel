@@ -61,7 +61,15 @@ export function ModelSelector({ models }: ModelSelectorProps) {
     } else {
       setCookie('selectedModel', '')
     }
-    
+
+    // Notify other components (e.g. the chat panel's attachment control) that
+    // the active model changed so they can re-read vision capability.
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('selectedModel-change', { detail: selectedModel ?? null })
+      )
+    }
+
     setOpen(false)
   }
 
