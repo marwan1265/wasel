@@ -11,7 +11,9 @@ interface QueuedMessage {
   timestamp: number
 }
 
-export function useEnhancedChat(options: UseChatOptions): UseChatHelpers {
+export function useEnhancedChat(
+  options: UseChatOptions
+): UseChatHelpers & { hasQueuedMessages: boolean } {
   const { isAuthReady, isAuthPending, isAuthSuccessful, authError } = useAuthContext()
   const chatHook = useChat(options)
   const [messageQueue, setMessageQueue] = useState<QueuedMessage[]>([])
@@ -149,6 +151,7 @@ export function useEnhancedChat(options: UseChatOptions): UseChatHelpers {
   return {
     ...chatHook,
     handleSubmit: enhancedHandleSubmit,
-    isLoading: isLoadingEnhanced
+    isLoading: isLoadingEnhanced,
+    hasQueuedMessages: messageQueue.length > 0
   }
 } 

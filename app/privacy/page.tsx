@@ -144,9 +144,31 @@ export default function PrivacyPage() {
               </p>
             </section>
 
-            {/* 12. تواصل معنا */}
+            {/* 12. التحقق الأمني (Cloudflare Turnstile) */}
             <section>
-              <h2 className="text-2xl font-semibold mb-4">12. تواصل معنا</h2>
+              <h2 className="text-2xl font-semibold mb-4">
+                12. التحقق الأمني (Cloudflare Turnstile)
+              </h2>
+              <p>
+                نستخدم خدمة{' '}
+                <a
+                  className="text-primary hover:underline"
+                  href="https://www.cloudflare.com/en-gb/turnstile-privacy-policy/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Cloudflare Turnstile
+                </a>{' '}
+                للتحقق من أن الزوار أشخاص حقيقيون وليسوا برامج آلية، وذلك دون عرض اختبارات مزعجة
+                في الغالب. قد تجمع هذه الخدمة بيانات فنية محدودة (مثل عنوان IP وخصائص المتصفّح
+                والجهاز) لأغراض التحقق فقط، ويخضع ذلك لسياسة خصوصية Cloudflare الخاصة بـ Turnstile
+                المشار إليها أعلاه.
+              </p>
+            </section>
+
+            {/* 13. تواصل معنا */}
+            <section>
+              <h2 className="text-2xl font-semibold mb-4">13. تواصل معنا</h2>
               <p>
                 لأي طلبات تتعلق بالخصوصية، يرجى التواصل عبر:
                 <br />

@@ -1,5 +1,6 @@
 'use client'
 
+import { useAuthContext } from '@/lib/contexts/auth-context'
 import { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
 import { Message } from 'ai'
@@ -29,6 +30,8 @@ interface ChatPanelProps {
   models?: Model[]
   /** Whether auto-scroll is currently active (at bottom) */
   isAutoScroll: boolean
+  /** A message is queued waiting for auth to complete */
+  hasQueuedMessages?: boolean
 }
 
 export function ChatPanel({
@@ -42,8 +45,10 @@ export function ChatPanel({
   stop,
   append,
   models,
-  isAutoScroll
+  isAutoScroll,
+  hasQueuedMessages = false
 }: ChatPanelProps) {
+  const { verificationRequired, registerVerificationSlot } = useAuthContext()
   const [showEmptyScreen, setShowEmptyScreen] = useState(false)
   const router = useRouter()
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -190,6 +195,25 @@ export function ChatPanel({
             )}
           </>
         )}
+
+        {/* Inline human-verification: the invisible Turnstile widget lives
+            here (portaled in by SessionInitializerWithContext). It is only
+            surfaced when Cloudflare requires interaction and a message is
+            waiting to send; completing it flushes the queued message. */}
+        <div
+          className={cn(
+            verificationRequired && hasQueuedMessages
+              ? 'mb-2 flex flex-col items-center gap-1'
+              : 'invisible h-0 overflow-hidden'
+          )}
+        >
+          {verificationRequired && hasQueuedMessages && (
+            <p className="text-xs text-muted-foreground" dir="rtl">
+              تحقق سريع لإرسال رسالتك
+            </p>
+          )}
+          <div ref={registerVerificationSlot} />
+        </div>
 
         <div className="relative flex flex-col w-full gap-2 bg-muted rounded-3xl border border-input">
           <Textarea

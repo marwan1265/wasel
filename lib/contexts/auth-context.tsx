@@ -9,6 +9,10 @@ interface AuthContextType {
   isAuthSuccessful: boolean
   authError: string | null
   user: User | null
+  /** Cloudflare decided the invisible check needs user interaction */
+  verificationRequired: boolean
+  /** Registers the DOM node that hosts the verification widget inline (chat composer) */
+  registerVerificationSlot: (el: HTMLElement | null) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
