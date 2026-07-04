@@ -113,7 +113,8 @@ export function Chat({
     append,
     data,
     setData,
-    reload
+    reload,
+    hasQueuedMessages
   } = chatHookResult
 
   // Safely access addToolResult if it exists
@@ -405,6 +406,7 @@ export function Chat({
         append={appendWithUrlUpdate}
         models={models}
         isAutoScroll={isAutoScroll}
+        hasQueuedMessages={hasQueuedMessages}
       />
     </div>
   )
