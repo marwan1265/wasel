@@ -2,6 +2,7 @@ import { getCurrentUserId } from '@/lib/auth/get-current-user'
 import { createManualToolStreamResponse } from '@/lib/streaming/create-manual-tool-stream'
 import { createToolCallingStreamResponse } from '@/lib/streaming/create-tool-calling-stream'
 import { Model } from '@/lib/types/models'
+import { sanitizeAttachments } from '@/lib/utils/attachments'
 import { isProviderEnabled } from '@/lib/utils/registry'
 import { cookies } from 'next/headers'
 
@@ -18,8 +19,8 @@ const DEFAULT_MODEL: Model = {
 
 export async function POST(req: Request) {
   try {
-    const { messages, id: chatId } = await req.json()
-    
+    const { messages: rawMessages, id: chatId } = await req.json()
+
     // Note: This endpoint does NOT save messages to the database
     // It's designed for ephemeral conversations on shared pages
     
@@ -71,6 +72,9 @@ export async function POST(req: Request) {
     }
 
     console.log(`[Ephemeral API] Using model: ${selectedModel.name} (${selectedModel.providerId})`)
+
+    // Strip image attachments for text-only models and drop invalid/oversized files.
+    const { messages } = sanitizeAttachments(rawMessages, selectedModel)
 
     const supportsToolCalling = selectedModel.toolCallType === 'native'
 

@@ -3,6 +3,7 @@ import { getCurrentUserId } from '@/lib/auth/get-current-user'
 import { createManualToolStreamResponse } from '@/lib/streaming/create-manual-tool-stream'
 import { createToolCallingStreamResponse } from '@/lib/streaming/create-tool-calling-stream'
 import { Model } from '@/lib/types/models'
+import { sanitizeAttachments } from '@/lib/utils/attachments'
 import { isProviderEnabled } from '@/lib/utils/registry'
 import { cookies } from 'next/headers'
 
@@ -19,7 +20,7 @@ const DEFAULT_MODEL: Model = {
 
 export async function POST(req: Request) {
   try {
-    const { messages, id: chatId } = await req.json()
+    const { messages: rawMessages, id: chatId } = await req.json()
     const referer = req.headers.get('referer')
     const isSharePage = referer?.includes('/share/')
     const userId = await getCurrentUserId()
@@ -29,22 +30,6 @@ export async function POST(req: Request) {
         status: 403,
         statusText: 'Forbidden'
       })
-    }
-
-    // Early chat saving - save user messages immediately
-    if (process.env.ENABLE_SAVE_CHAT_HISTORY === 'true' && messages && messages.length > 0) {
-      console.log('[API] Attempting early save for chatId:', chatId)
-      try {
-        const result = await saveUserMessage(chatId, messages, userId)
-        if (result.success) {
-          console.log('[API] Early save successful for chatId:', chatId)
-        } else {
-          console.warn('[API] Early save failed for chatId:', chatId, 'Error:', result.error)
-        }
-      } catch (error) {
-        console.error('[API] Early save error for chatId:', chatId, 'Error:', error)
-        // Continue with streaming even if early save fails
-      }
     }
 
     const cookieStore = await cookies()
@@ -72,6 +57,38 @@ export async function POST(req: Request) {
           statusText: 'Not Found'
         }
       )
+    }
+
+    // Validate/strip image attachments before anything else: a text-only model
+    // must never receive image parts, and oversized/invalid files are dropped.
+    // We sanitise up front so the persisted history matches what the model saw.
+    const { messages, removedForModel, rejected } = sanitizeAttachments(
+      rawMessages,
+      selectedModel
+    )
+    if (removedForModel) {
+      console.warn(
+        `[API] Stripped image attachments: model ${selectedModel.id} has no vision support`
+      )
+    }
+    if (rejected > 0) {
+      console.warn(`[API] Dropped ${rejected} invalid/oversized attachment(s)`)
+    }
+
+    // Early chat saving - save user messages immediately
+    if (process.env.ENABLE_SAVE_CHAT_HISTORY === 'true' && messages && messages.length > 0) {
+      console.log('[API] Attempting early save for chatId:', chatId)
+      try {
+        const result = await saveUserMessage(chatId, messages, userId)
+        if (result.success) {
+          console.log('[API] Early save successful for chatId:', chatId)
+        } else {
+          console.warn('[API] Early save failed for chatId:', chatId, 'Error:', result.error)
+        }
+      } catch (error) {
+        console.error('[API] Early save error for chatId:', chatId, 'Error:', error)
+        // Continue with streaming even if early save fails
+      }
     }
 
     const supportsToolCalling = selectedModel.toolCallType === 'native'

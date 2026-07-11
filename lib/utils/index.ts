@@ -144,6 +144,13 @@ export function convertToUIMessages(
     // Build the text content and tool invocations from message.content.
     let textContent = ''
     let toolInvocations: Array<ToolInvocation> = []
+    // Reconstruct image attachments so they survive a reload (persisted user
+    // messages store images as `image` content parts).
+    let reconstructedAttachments: Array<{
+      url: string
+      name?: string
+      contentType?: string
+    }> = []
 
     if (message.content) {
       if (typeof message.content === 'string') {
@@ -153,6 +160,26 @@ export function convertToUIMessages(
           if (content && typeof content === 'object' && 'type' in content) {
             if (content.type === 'text' && 'text' in content) {
               textContent += content.text
+            } else if (content.type === 'image' && 'image' in content) {
+              const image = (content as { image: unknown }).image
+              let url: string | undefined
+              if (typeof image === 'string') {
+                url = image
+              } else if (image instanceof URL) {
+                url = image.toString()
+              } else if (
+                image &&
+                typeof image === 'object' &&
+                'href' in (image as Record<string, unknown>)
+              ) {
+                url = String((image as { href: unknown }).href)
+              }
+              if (url) {
+                reconstructedAttachments.push({
+                  url,
+                  contentType: (content as { mimeType?: string }).mimeType
+                })
+              }
             } else if (
               content.type === 'tool-call' &&
               'toolCallId' in content &&
@@ -198,7 +225,10 @@ export function convertToUIMessages(
       role: message.role,
       content: textContent,
       toolInvocations: toolInvocations.length > 0 ? toolInvocations : undefined,
-      annotations: annotations
+      annotations: annotations,
+      ...(reconstructedAttachments.length > 0
+        ? { experimental_attachments: reconstructedAttachments }
+        : {})
     }
 
     chatMessages.push(newMessage)
@@ -219,7 +249,22 @@ export function convertToExtendedCoreMessages(
 ): ExtendedCoreMessage[] {
   const result: ExtendedCoreMessage[] = []
 
-  for (const message of messages) {
+  for (const rawMessage of messages) {
+    // Do not persist raw image bytes in chat history. The AI SDK would expand a
+    // data: URL attachment into a Uint8Array, which serialises to a JSON object
+    // several times larger than the original image and would bloat Redis /
+    // Supabase. Images are still sent to the model live (the streaming path uses
+    // convertToCoreMessages directly); history keeps just the text.
+    const message =
+      (rawMessage as { experimental_attachments?: unknown })
+        .experimental_attachments !== undefined
+        ? (() => {
+            const { experimental_attachments, ...rest } = rawMessage as Message & {
+              experimental_attachments?: unknown
+            }
+            return rest as Message
+          })()
+        : rawMessage
     // Convert annotations to data messages
     if (message.annotations && message.annotations.length > 0) {
       message.annotations.forEach(annotation => {

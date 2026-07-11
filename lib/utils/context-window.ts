@@ -22,12 +22,32 @@ export function getMaxAllowedTokens(model: Model): number {
   return contextWindow - reserveTokens
 }
 
+// Approximate character-cost charged for a single image/file part. Counting the
+// raw base64 of a data URL (often megabytes) would make a single image dwarf the
+// whole budget and evict all surrounding context, so we charge a flat estimate.
+const IMAGE_PART_SIZE_ESTIMATE = 2_000
+
 // Estimate message size in characters. For array content (tool calls/results,
 // multimodal parts), `content.length` is the number of parts — not the size —
 // which let huge tool results slip past truncation untouched.
 function estimateMessageSize(message: CoreMessage): number {
   if (typeof message.content === 'string') {
     return message.content.length
+  }
+  if (Array.isArray(message.content)) {
+    let size = 0
+    for (const part of message.content as Array<{ type?: string }>) {
+      if (part && (part.type === 'image' || part.type === 'file')) {
+        size += IMAGE_PART_SIZE_ESTIMATE
+        continue
+      }
+      try {
+        size += JSON.stringify(part)?.length || 0
+      } catch {
+        // Ignore parts that can't be stringified.
+      }
+    }
+    return size
   }
   try {
     return JSON.stringify(message.content)?.length || 0
